@@ -20,6 +20,7 @@ const float blend = 0.69;
 const float coneTightness = 0.69;
 const float coneSafety = 0.42;
 
+// https://stackoverflow.com/questions/12964279/whats-the-origin-of-this-glsl-rand-one-liner
 float rand(vec2 co){
 	return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453)*2.0 - 1.0;
 }
