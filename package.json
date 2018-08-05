@@ -3,8 +3,22 @@
 	"version": "1.0.0",
 	"description": "",
 	"repository": "github:seleb/lowrezjam2018",
+	"scripts": {
+		"watch": "npm-watch build",
+		"build": "node build.js"
+	},
 	"author": "Sean S. LeBlanc <sean.s.leblanc@gmail.com>",
 	"license": "MIT",
+	"devDependencies": {
+		"npm-watch": "^0.3.0"
+	},
+	"watch": {
+		"build": {
+			"patterns": [
+				"src"
+			],
+			"extensions": "html,txt,frag",
+			"quiet": false
 		}
 	}
 }
