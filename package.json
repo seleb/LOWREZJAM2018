@@ -17,7 +17,7 @@
 			"patterns": [
 				"src"
 			],
-			"extensions": "html,txt,frag",
+			"extensions": "html,txt,glsl",
 			"quiet": false
 		}
 	}
