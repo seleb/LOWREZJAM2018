@@ -7096,7 +7096,7 @@ CHAR 255
 	(function (bitsy) {
 	'use strict';
 	var hackOptions = {
-		rows: 3, // number of rows per text box (bitsy default is 2)
+		rows: 2, // number of rows per text box (bitsy default is 2)
 	};
 
 	bitsy = bitsy && bitsy.hasOwnProperty('default') ? bitsy['default'] : bitsy;
@@ -7629,6 +7629,7 @@ inject$1(/(function drawTile\(img,x,y,context\) {)/, [
 	(function (bitsy) {
 	'use strict';
 	var x,y,room;
+	var mx,my;
 	var hackOptions = {
 		background: "black",
 		scaleMode: "MULTIPLES", // use "FIT" if you prefer size to pixel accuracy
@@ -7638,9 +7639,14 @@ inject$1(/(function drawTile\(img,x,y,context\) {)/, [
 			// you can set up any custom uniforms you have here if needed
 			// e.g. glazy.glLocations.myUniform = glazy.gl.getUniformLocation(glazy.shader.program, 'myUniform');
 			glazy.glLocations.player = glazy.gl.getUniformLocation(glazy.shader.program, 'player');
+			glazy.glLocations.mouse = glazy.gl.getUniformLocation(glazy.shader.program, 'mouse');
 			x = bitsy.player().x;
 			y = bitsy.player().y;
 			room = bitsy.player().room;
+			document.getElementById('game').addEventListener('mousemove', function(event){
+				mx = event.clientX - event.currentTarget.offsetLeft;
+				my = event.clientY - event.currentTarget.offsetTop;
+			});
 		},
 		update: function() {
 			// you can update any custom uniforms you have here if needed
@@ -7654,6 +7660,7 @@ inject$1(/(function drawTile\(img,x,y,context\) {)/, [
 				y += (bitsy.player().y - y) * .1;
 			}
 			glazy.gl.uniform2f(glazy.glLocations.player, (x+0.5)/8, 1 - ((y+0.5)/8));
+			glazy.gl.uniform2f(glazy.glLocations.mouse, mx/64, 1.0-my/64);
 		},
 	};
 
