@@ -7064,284 +7064,101 @@ CHAR 255
 000000
 </script>
 
-
-
 <script>
-	/**
-	🕷
-	@file itsy-bitsy
-	@summary for when bitsy's not small enough
-	@license MIT
-	@version 1.0.0
-	@requires Bitsy Version: 5.1
-	@author Sean S. LeBlanc
+// var x,y,room;
+// var mx,my;
+// var onF = false, on = 0;
+// window.setOn = function(v) {
+// 	onF = v;
+// };
+// // bg noise
+// (function(){document.addEventListener("mousedown",function e(){const t=48e3,n=new(window.AudioContext||window.webkitAudioContext)({sampleRate:48e3}),o=n.createGain();o.gain.setValueAtTime(0,0),o.gain.linearRampToValueAtTime(0.01,5),o.connect(n.destination);function a(t){t=t%Infinity; return (Math.abs(Math.random()*100*Math.sin(t/1000000)+Math.random()*80*Math.sin(t/200000)+Math.random()*40*Math.sin(t/50000))/100)%2-1;};let i=0;function r(){const e=n.createBufferSource();e.connect(o);const r=n.createBuffer(1,t,n.sampleRate),u=r.getChannelData(0);for(let e=0;e<t;++e)u[e]=a(i+e);e.buffer=r,e.start(),i+=t}setInterval(r,1e3);r(),document.removeEventListener("mousedown",e)})})();
+// // music
+// (function(){document.addEventListener("mousedown",function e(){
+// 	const t=48e3,n=new(window.AudioContext||window.webkitAudioContext)({sampleRate:48e3}),o=n.createGain();o.gain.setValueAtTime(0,0),o.gain.linearRampToValueAtTime(0.01,2.5),o.connect(n.destination);function a(t){t=t%Infinity; return (Math.abs(((t<<2)/((t<<0)&(t>>7)&t>>2))|t>>(0-(3^6&t>>34))|t>>20)/100)%2-1;};let i=0;function r(){const e=n.createBufferSource();e.connect(o);const r=n.createBuffer(1,t,n.sampleRate),u=r.getChannelData(0);for(let e=0;e<t;++e)u[e]=a(i+e);e.buffer=r,e.start(),i+=t}document.removeEventListener("mousedown",e)
+// 	window.startMusic = function(){
+// 		setInterval(r,1e3);
+// 		r();
+// 	};
+// 	});
+// })();
 
-	@description
-	Modifies bitsy to run at 64x64 pixels instead of 256x256.
-
-	Note that this means you have significantly less space for text
-	(text in regular bitsy is twice as large as the rest of the game)
-	To help deal with this, a hack option is provided which lets you
-	customize how many rows of text the dialog boxes will show.
-
-	HOW TO USE:
-		1. Copy-paste this script into a new script tag after the Bitsy source code.
-		2. edit hackOptions below as needed
-
-	NOTE:
-	The number of rows is the only provided hack option,
-	but most of the numbers being replaced can be easily
-	customized if you want slightly different sizes/positions.
-	*/
-	(function (bitsy) {
-	'use strict';
-	var hackOptions = {
-		rows: 2, // number of rows per text box (bitsy default is 2)
-	};
-
-	bitsy = bitsy && bitsy.hasOwnProperty('default') ? bitsy['default'] : bitsy;
-
-	/**
-	@file utils
-	@summary miscellaneous bitsy utilities
-	@author Sean S. LeBlanc
-	*/
-
-	/*
-	Helper used to replace code in a script tag based on a search regex
-	To inject code without erasing original string, using capturing groups; e.g.
-		inject(/(some string)/,'injected before $1 injected after')
-	*/
-	function inject(searchRegex, replaceString) {
-		// find the relevant script tag
-		var scriptTags = document.getElementsByTagName('script');
-		var scriptTag;
-		var code;
-		for (var i = 0; i < scriptTags.length; ++i) {
-			scriptTag = scriptTags[i];
-			var matchesSearch = scriptTag.textContent.search(searchRegex) !== -1;
-			var isCurrentScript = scriptTag === document.currentScript;
-			if (matchesSearch && !isCurrentScript) {
-				code = scriptTag.textContent;
-				break;
-			}
-		}
-
-		// error-handling
-		if (!code) {
-			throw 'Couldn\'t find "' + searchRegex + '" in script tags';
-		}
-
-		// modify the content
-		code = code.replace(searchRegex, replaceString);
-
-		// replace the old script tag with a new one using our modified code
-		var newScriptTag = document.createElement('script');
-		newScriptTag.textContent = code;
-		scriptTag.insertAdjacentElement('afterend', newScriptTag);
-		scriptTag.remove();
-	}
-
-	/**
-	* Helper for getting an array with unique elements 
-	* @param  {Array} array Original array
-	* @return {Array}       Copy of array, excluding duplicates
-	*/
-	function unique(array) {
-		return array.filter(function (item, idx) {
-			return array.indexOf(item) === idx;
-		});
-	}
-
-	/**
-
-	@file kitsy-script-toolkit
-	@summary makes it easier and cleaner to run code before and after Bitsy functions or to inject new code into Bitsy script tags
-	@license WTFPL (do WTF you want)
-	@version 3.1.0
-	@requires Bitsy Version: 4.5, 4.6
-	@author @mildmojo
-
-	@description
-	HOW TO USE:
-	import {before, after, inject, addDialogTag, addDeferredDialogTag} from "./helpers/kitsy-script-toolkit";
-
-	before(targetFuncName, beforeFn);
-	after(targetFuncName, afterFn);
-	inject(searchRegex, replaceString);
-	addDialogTag(tagName, dialogFn);
-	addDeferredDialogTag(tagName, dialogFn);
-
-	For more info, see the documentation at:
-	https://github.com/seleb/bitsy-hacks/wiki/Coding-with-kitsy
-	*/
-
-
-	// Ex: inject(/(names.sprite.set\( name, id \);)/, '$1console.dir(names)');
-	function inject$1(searchRegex, replaceString) {
-		var kitsy = kitsyInit();
-		kitsy.queuedInjectScripts.push({
-			searchRegex: searchRegex,
-			replaceString: replaceString
-		});
-	}
-
-	function kitsyInit() {
-		// return already-initialized kitsy
-		if (bitsy.kitsy) {
-			return bitsy.kitsy;
-		}
-
-		// Initialize kitsy
-		bitsy.kitsy = {
-			queuedInjectScripts: [],
-			queuedBeforeScripts: {},
-			queuedAfterScripts: {}
-		};
-
-		var oldStartFunc = bitsy.startExportedGame;
-		bitsy.startExportedGame = function doAllInjections() {
-			// Only do this once.
-			bitsy.startExportedGame = oldStartFunc;
-
-			// Rewrite scripts and hook everything up.
-			doInjects();
-			applyAllHooks();
-
-			// Start the game
-			bitsy.startExportedGame.apply(this, arguments);
-		};
-
-		return bitsy.kitsy;
-	}
-
-
-	function doInjects() {
-		bitsy.kitsy.queuedInjectScripts.forEach(function (injectScript) {
-			inject(injectScript.searchRegex, injectScript.replaceString);
-		});
-		_reinitEngine();
-	}
-
-	function applyAllHooks() {
-		var allHooks = unique(Object.keys(bitsy.kitsy.queuedBeforeScripts).concat(Object.keys(bitsy.kitsy.queuedAfterScripts)));
-		allHooks.forEach(applyHook);
-	}
-
-	function applyHook(functionName) {
-		var superFn = bitsy[functionName];
-		var superFnLength = superFn.length;
-		var functions = [];
-		// start with befores
-		functions = functions.concat(bitsy.kitsy.queuedBeforeScripts[functionName] || []);
-		// then original
-		functions.push(superFn);
-		// then afters
-		functions = functions.concat(bitsy.kitsy.queuedAfterScripts[functionName] || []);
-
-		// overwrite original with one which will call each in order
-		bitsy[functionName] = function () {
-			var args = [].slice.call(arguments);
-			var i = 0;
-			runBefore.apply(this, arguments);
-
-			// Iterate thru sync & async functions. Run each, finally run original.
-			function runBefore() {
-				// All outta functions? Finish
-				if (i === functions.length) {
-					return;
-				}
-
-				// Update args if provided.
-				if (arguments.length > 0) {
-					args = [].slice.call(arguments);
-				}
-
-				if (functions[i].length > superFnLength) {
-					// Assume funcs that accept more args than the original are
-					// async and accept a callback as an additional argument.
-					functions[i++].apply(this, args.concat(runBefore.bind(this)));
-				} else {
-					// run synchronously
-					var newArgs = functions[i++].apply(this, args) || args;
-					runBefore.apply(this, newArgs);
-				}
-			}
-		};
-	}
-
-	function _reinitEngine() {
-		// recreate the script and dialog objects so that they'll be
-		// referencing the code with injections instead of the original
-		bitsy.scriptModule = new bitsy.Script();
-		bitsy.scriptInterpreter = bitsy.scriptModule.CreateInterpreter();
-
-		bitsy.dialogModule = new bitsy.Dialog();
-		bitsy.dialogRenderer = bitsy.dialogModule.CreateRenderer();
-		bitsy.dialogBuffer = bitsy.dialogModule.CreateBuffer();
-	}
-
-
-
-
-
-	// rewrite main canvas width/height
-	inject$1(/(width =) 128/, '$1 64');
-	inject$1(/(height =) 128/, '$1 64');
-
-	inject$1(/4(; \/\/this is stupid but necessary)/, '1$1'); // rewrite canvas scale
-	inject$1(/(mapsize =) 16/, '$1 8'); // rewrite mapsize
-	inject$1(/(\+ 1 >=) 16/g, '$1 8'); // rewrite right/down wall checks
-
-	inject$1(/2(; \/\/using a different scaling factor for text feels like cheating\.\.\. but it looks better)/, '1$1'); // rewrite text scale
-
-	// rewrite textbox info
-	inject$1(/(var textboxInfo = {)[^]*?(};)/, '$1' + [
-		'img : null,',
-		'width : 62,',
-		'height : 64,',
-		'top : 1,',
-		'left : 1,',
-		'bottom : 1,',
-		'font_scale : 1,',
-		'padding_vert : 2,',
-		'arrow_height : 5'
-	].join('\n') + '$2');
-	inject$1(/(top = \()4/, '$1 1');
-	inject$1(/(left = \()4/, '$1 1');
-
-	inject$1(/(relativeFontHeight\(\) \*) 2/, '$1 ' + hackOptions.rows); // rewrite textbox height
-	inject$1(/(pixelsPerRow =) 192/, '$1 62'); // rewrite hard-coded textbox wrap width
-	inject$1(/(else if \(curRowIndex )== 0/g, '$1< ' + (hackOptions.rows - 1)); // rewrite hard-coded row limit
-
-	// inject pixelated rendering style
-	var style = document.createElement('style');
-	style.innerText = '#game{ -ms-interpolation-mode: nearest-neighbor;image-rendering: -webkit-optimize-contrast;image-rendering: -moz-crisp-edges;image-rendering: -o-pixelated;image-rendering: pixelated; }';
-	document.head.appendChild(style);
-
-	}(window));
-
+// // setTimeout(function(){
+// // 	startMusic();
+// // 	setOn(true);
+// // }, 5000);
 </script>
 
 <script>
 /**
-🏁
-@file transparent sprites
-@summary makes all sprites have transparent backgrounds
+😴
+@file canvas replacement
+@summary WebGLazy bitsy integration (this one's mostly just for me)
 @license MIT
-@version 2.0.0
-@requires Bitsy Version: 5.1
+@version 1.1.0
 @author Sean S. LeBlanc
 
 @description
-Makes all sprites have transparent backgrounds.
-i.e. tiles can be seen underneath the player, sprites, and items.
+Replaces bitsy canvas with a responsive WebGL canvas (this one's mostly just for me)
 
 HOW TO USE:
-Copy-paste this script into a script tag after the bitsy source
+1. Copy-paste this script into a script tag after the bitsy source
+2. For finer scaling, edit `var text_scale = 2` and `var scale = 4` in the bitsy source to `var text_scale = 1` and `var scale = 2`
+3. Edit the hackOptions object passed to the `new WebGLazy` call as needed
+
+The shader used to render the canvas can be overriden by including script tags
+with `id='shader-frag'` and `type='x-shader/x-fragment'
+e.g.
+<script id='shader-frag' type='x-shader/x-fragment'>
+	// uv-wave fragment shader
+	precision mediump float;
+	uniform sampler2D tex0;
+	uniform sampler2D tex1;
+	uniform float time;
+	uniform vec2 resolution;
+
+	void main(){
+		vec2 coord = gl_FragCoord.xy;
+		vec2 uv = coord.xy / resolution.xy;
+		uv.x += sin(uv.y * 10.0 + time / 200.0) / 60.0;
+		uv.y += cos(uv.x * 10.0 + time / 200.0) / 60.0;
+		vec3 col = texture2D(tex0,uv).rgb;
+		gl_FragColor = vec4(col, 1.0);
+	}
+(closing script tag omitted in comment to avoid confusing browser)
 */
 (function (bitsy) {
 'use strict';
+
+var x,y,room;
+var mx,my;
+var onF = false, on = 0;
+var snap = false;
+var snapAngle = 0;
+window.setOn = function(v) {
+	onF = v;
+};
+// bg noise
+(function(){document.addEventListener("mousedown",function e(){const t=48e3,n=new(window.AudioContext||window.webkitAudioContext)({sampleRate:48e3}),o=n.createGain();o.gain.setValueAtTime(0,0),o.gain.linearRampToValueAtTime(0.01,5),o.connect(n.destination);function a(t){t=t%Infinity; return (Math.abs(Math.random()*100*Math.sin(t/1000000)+Math.random()*80*Math.sin(t/200000)+Math.random()*40*Math.sin(t/50000))/100)%2-1;};let i=0;function r(){const e=n.createBufferSource();e.connect(o);const r=n.createBuffer(1,t,n.sampleRate),u=r.getChannelData(0);for(let e=0;e<t;++e)u[e]=a(i+e);e.buffer=r,e.start(),i+=t}setInterval(r,1e3);r(),document.removeEventListener("mousedown",e)})})();
+// music
+(function(){document.addEventListener("mousedown",function e(){
+	const t=48e3,n=new(window.AudioContext||window.webkitAudioContext)({sampleRate:48e3}),o=n.createGain();o.gain.setValueAtTime(0,0),o.gain.linearRampToValueAtTime(0.01,2.5),o.connect(n.destination);function a(t){t=t%Infinity; return (Math.abs(((t<<2)/((t<<0)&(t>>7)&t>>2))|t>>(0-(3^6&t>>34))|t>>20)/100)%2-1;};let i=0;function r(){const e=n.createBufferSource();e.connect(o);const r=n.createBuffer(1,t,n.sampleRate),u=r.getChannelData(0);for(let e=0;e<t;++e)u[e]=a(i+e);e.buffer=r,e.start(),i+=t}document.removeEventListener("mousedown",e)
+	window.startMusic = function(){
+		setInterval(r,1e3);
+		r();
+	};
+	});
+})();
+
+// setTimeout(function(){
+// 	startMusic();
+// 	setOn(true);
+// }, 5000);
+
+
+var hackOptions = {
+	rows: 2, // number of rows per text box (bitsy default is 2)
+};
 
 bitsy = bitsy && bitsy.hasOwnProperty('default') ? bitsy['default'] : bitsy;
 
@@ -7402,7 +7219,7 @@ function unique(array) {
 @file kitsy-script-toolkit
 @summary makes it easier and cleaner to run code before and after Bitsy functions or to inject new code into Bitsy script tags
 @license WTFPL (do WTF you want)
-@version 3.1.0
+@version 3.2.0
 @requires Bitsy Version: 4.5, 4.6
 @author @mildmojo
 
@@ -7428,6 +7245,22 @@ function inject$1(searchRegex, replaceString) {
 		searchRegex: searchRegex,
 		replaceString: replaceString
 	});
+}
+
+// Ex: before('load_game', function run() { alert('Loading!'); });
+//     before('show_text', function run(text) { return text.toUpperCase(); });
+//     before('show_text', function run(text, done) { done(text.toUpperCase()); });
+function before(targetFuncName, beforeFn) {
+	var kitsy = kitsyInit();
+	kitsy.queuedBeforeScripts[targetFuncName] = kitsy.queuedBeforeScripts[targetFuncName] || [];
+	kitsy.queuedBeforeScripts[targetFuncName].push(beforeFn);
+}
+
+// Ex: after('load_game', function run() { alert('Loaded!'); });
+function after(targetFuncName, afterFn) {
+	var kitsy = kitsyInit();
+	kitsy.queuedAfterScripts[targetFuncName] = kitsy.queuedAfterScripts[targetFuncName] || [];
+	kitsy.queuedAfterScripts[targetFuncName].push(afterFn);
 }
 
 function kitsyInit() {
@@ -7525,7 +7358,167 @@ function _reinitEngine() {
 	bitsy.dialogBuffer = bitsy.dialogModule.CreateBuffer();
 }
 
+// Rewrite custom functions' parentheses to curly braces for Bitsy's
+// interpreter. Unescape escaped parentheticals, too.
+function convertDialogTags(input, tag) {
+	return input
+		.replace(new RegExp('\\\\?\\((' + tag + '(\\s+(".+?"|.+?))?)\\\\?\\)', 'g'), function(match, group){
+			if(match.substr(0,1) === '\\') {
+				return '('+ group + ')'; // Rewrite \(tag "..."|...\) to (tag "..."|...)
+			}
+			return '{'+ group + '}'; // Rewrite (tag "..."|...) to {tag "..."|...}
+		});
+}
 
+
+function addDialogFunction(tag, fn) {
+	var kitsy = kitsyInit();
+	kitsy.dialogFunctions = kitsy.dialogFunctions || {};
+	if (kitsy.dialogFunctions[tag]) {
+		throw new Error('The dialog function "' + tag + '" already exists.');
+	}
+
+	// Hook into game load and rewrite custom functions in game data to Bitsy format.
+	before('load_game', function (game_data, startWithTitle) {
+		return [convertDialogTags(game_data, tag), startWithTitle];
+	});
+
+	kitsy.dialogFunctions[tag] = fn;
+}
+
+/**
+ * Adds a custom dialog tag which executes the provided function.
+ * For ease-of-use with the bitsy editor, tags can be written as
+ * (tagname "parameters") in addition to the standard {tagname "parameters"}
+ * 
+ * Function is executed immediately when the tag is reached.
+ *
+ * @param {string}   tag Name of tag
+ * @param {Function} fn  Function to execute, with signature `function(environment, parameters, onReturn){}`
+ *                       environment: provides access to SetVariable/GetVariable (among other things, see Environment in the bitsy source for more info)
+ *                       parameters: array containing parameters as string in first element (i.e. `parameters[0]`)
+ *                       onReturn: function to call with return value (just call `onReturn(null);` at the end of your function if your tag doesn't interact with the logic system)
+ */
+function addDialogTag(tag, fn) {
+	addDialogFunction(tag, fn);
+	inject$1(
+		/(var functionMap = new Map\(\);)/,
+		'$1functionMap.set("' + tag + '", kitsy.dialogFunctions.' + tag + ');'
+	);
+}
+
+/**
+ * Adds a custom dialog tag which executes the provided function.
+ * For ease-of-use with the bitsy editor, tags can be written as
+ * (tagname "parameters") in addition to the standard {tagname "parameters"}
+ * 
+ * Function is executed after the dialog box.
+ *
+ * @param {string}   tag Name of tag
+ * @param {Function} fn  Function to execute, with signature `function(environment, parameters){}`
+ *                       environment: provides access to SetVariable/GetVariable (among other things, see Environment in the bitsy source for more info)
+ *                       parameters: array containing parameters as string in first element (i.e. `parameters[0]`)
+ */
+function addDeferredDialogTag(tag, fn) {
+	addDialogFunction(tag, fn);
+	bitsy.kitsy.deferredDialogFunctions = bitsy.kitsy.deferredDialogFunctions || {};
+	var deferred = bitsy.kitsy.deferredDialogFunctions[tag] = [];
+	inject$1(
+		/(var functionMap = new Map\(\);)/,
+		'$1functionMap.set("' + tag + '", function(e, p, o){ kitsy.deferredDialogFunctions.' + tag + '.push({e:e,p:p}); o(null); });'
+	);
+	// Hook into the dialog finish event and execute the actual function
+	after('onExitDialog', function () {
+		while (deferred.length) {
+			var args = deferred.shift();
+			bitsy.kitsy.dialogFunctions[tag](args.e, args.p, args.o);
+		}
+	});
+	// Hook into the game reset and make sure data gets cleared
+	after('clearGameData', function () {
+		deferred.length = 0;
+	});
+}
+
+/**
+🕷
+@file itsy-bitsy
+@summary for when bitsy's not small enough
+@license MIT
+@version 1.0.1
+@requires Bitsy Version: 5.1
+@author Sean S. LeBlanc
+
+@description
+Modifies bitsy to run at 64x64 pixels instead of 256x256.
+
+Note that this means you have significantly less space for text
+(text in regular bitsy is twice as large as the rest of the game)
+To help deal with this, a hack option is provided which lets you
+customize how many rows of text the dialog boxes will show.
+
+HOW TO USE:
+	1. Copy-paste this script into a new script tag after the Bitsy source code.
+	2. edit hackOptions below as needed
+
+NOTE:
+The number of rows is the only provided hack option,
+but most of the numbers being replaced can be easily
+customized if you want slightly different sizes/positions.
+*/
+
+
+
+// rewrite main canvas width/height
+inject$1(/(width =) 128/, '$1 64');
+inject$1(/(height =) 128/, '$1 64');
+
+inject$1(/4(; \/\/this is stupid but necessary)/, '1$1'); // rewrite canvas scale
+inject$1(/(mapsize =) 16/, '$1 8'); // rewrite mapsize
+inject$1(/(\+ 1 >=) 16/g, '$1 8'); // rewrite right/down wall checks
+
+inject$1(/2(; \/\/using a different scaling factor for text feels like cheating\.\.\. but it looks better)/, '1$1'); // rewrite text scale
+
+// rewrite textbox info
+inject$1(/(var textboxInfo = {)[^]*?(};)/, '$1' + [
+	'img : null,',
+	'width : 62,',
+	'height : 64,',
+	'top : 1,',
+	'left : 1,',
+	'bottom : 1,',
+	'font_scale : 1,',
+	'padding_vert : 2,',
+	'arrow_height : 5'
+].join('\n') + '$2');
+inject$1(/(top = \()4/, '$1 1');
+inject$1(/(left = \()4/, '$1 1');
+
+inject$1(/(relativeFontHeight\(\) \*) 2/, '$1 ' + hackOptions.rows); // rewrite textbox height
+inject$1(/(pixelsPerRow =) 192/, '$1 62'); // rewrite hard-coded textbox wrap width
+inject$1(/(else if \(curRowIndex )== 0/g, '$1< ' + (hackOptions.rows - 1)); // rewrite hard-coded row limit
+
+// inject pixelated rendering style
+var style = document.createElement('style');
+style.innerText = '#game{ -ms-interpolation-mode: nearest-neighbor;image-rendering: -webkit-optimize-contrast;image-rendering: -moz-crisp-edges;image-rendering: -o-pixelated;image-rendering: pixelated; }';
+document.head.appendChild(style);
+
+/**
+🏁
+@file transparent sprites
+@summary makes all sprites have transparent backgrounds
+@license MIT
+@version 2.0.0
+@requires Bitsy Version: 5.1
+@author Sean S. LeBlanc
+
+@description
+Makes all sprites have transparent backgrounds.
+i.e. tiles can be seen underneath the player, sprites, and items.
+
+HOW TO USE:
+Copy-paste this script into a script tag after the bitsy source
+*/
 
 // override imageDataFromImageSource to use transparency for background pixels
 // and save the results to a custom image cache
@@ -7585,284 +7578,552 @@ inject$1(/(function drawTile\(img,x,y,context\) {)/, [
 '	return;',
 ].join('\n'));
 
-}(window));
+/**
+☕
+@file javascript dialog
+@summary execute arbitrary javascript from dialog
+@license MIT
+@version 3.1.0
+@requires Bitsy Version: 4.5, 4.6
+@author Sean S. LeBlanc
 
-</script>
-<script>
-	/**
-	😴
-	@file canvas replacement
-	@summary WebGLazy bitsy integration (this one's mostly just for me)
-	@license MIT
-	@version 1.0.1
-	@author Sean S. LeBlanc
+@description
+Lets you execute arbitrary JavaScript from dialog (including inside conditionals).
+If you're familiar with the Bitsy source, this will let you write one-shot hacks
+for a wide variety of situations.
 
-	@description
-	Replaces bitsy canvas with a responsive WebGL canvas (this one's mostly just for me)
+Usage:
+	(js "<JavaScript code to evaluate after dialog is closed>")
+	(jsNow "<JavaScript code to evaluate immediately>")
 
-	HOW TO USE:
-	1. Copy-paste this script into a script tag after the bitsy source
-	2. For finer scaling, edit `var text_scale = 2` and `var scale = 4` in the bitsy source to `var text_scale = 1` and `var scale = 2`
-	3. Edit the hackOptions object passed to the `new WebGLazy` call as needed
+Examples:
+	move a sprite:
+	(js "sprite['a'].x = 10;")
+	edit palette colour:
+	(js "getPal(curPal())[0] = [255,0,0];renderImages();")
+	place an item next to player:
+	(js "room[curRoom].items.push({id:'0',x:player().x+1,y:player().y});")
+	verbose facimile of exit-from-dialog:
+	(js "var _onExitDialog=onExitDialog;onExitDialog=function(){player().room=curRoom='3';_onExitDialog.apply(this,arguments);onExitDialog=_onExitDialog;};")
 
-	The shader used to render the canvas can be overriden by including script tags
-	with `id='shader-frag'` and `type='x-shader/x-fragment'
-	e.g.
-	<script id='shader-frag' type='x-shader/x-fragment'>
-		// uv-wave fragment shader
-		precision mediump float;
-		uniform sampler2D tex0;
-		uniform sampler2D tex1;
-		uniform float time;
-		uniform vec2 resolution;
+HOW TO USE:
+1. Copy-paste into a script tag after the bitsy source
+2. Add (js "<code>") to your dialog as needed
 
-		void main(){
-			vec2 coord = gl_FragCoord.xy;
-			vec2 uv = coord.xy / resolution.xy;
-			uv.x += sin(uv.y * 10.0 + time / 200.0) / 60.0;
-			uv.y += cos(uv.x * 10.0 + time / 200.0) / 60.0;
-			vec3 col = texture2D(tex0,uv).rgb;
-			gl_FragColor = vec4(col, 1.0);
+NOTE: This uses parentheses "()" instead of curly braces "{}" around function
+      calls because the Bitsy editor's fancy dialog window strips unrecognized
+      curly-brace functions from dialog text. To keep from losing data, write
+      these function calls with parentheses like the examples above.
+
+      For full editor integration, you'd *probably* also need to paste this
+      code at the end of the editor's `bitsy.js` file. Untested.
+*/
+
+var indirectEval$1 = eval;
+
+function executeJs(environment, parameters, onReturn) {
+	indirectEval$1(parameters[0]);
+	if (onReturn) {
+		onReturn(null);
+	}
+}
+
+addDeferredDialogTag('js', executeJs);
+addDialogTag('jsNow', executeJs);
+
+var gamepads = {
+	// XBOX360 wired controller configuration
+	// buttons
+	A: 0,
+	X: 2,
+	B: 1,
+	Y: 3,
+	LB: 4,
+	RB: 5,
+	LT: 6,
+	RT: 7,
+	BACK: 8,
+	START: 9,
+	LHAT: 10,
+	RHAT: 11,
+	DPAD_UP: 12,
+	DPAD_DOWN: 13,
+	DPAD_LEFT: 14,
+	DPAD_RIGHT: 15,
+
+	// axes
+	LSTICK_H: 0,
+	LSTICK_V: 1,
+	RSTICK_H: 2,
+	RSTICK_V: 3,
+
+
+	players: [],
+
+	available: false,
+	pollEveryFrame: false,
+	connected: false,
+	deadZone: 0.2, // if abs(an axis value) is < deadZone, returns 0 instead
+	snapZone: 0.0, // if abs(1-an axis value) is < snapZone, returns 1 instead
+
+	init: function () {
+		if (navigator.getGamepads) {
+			this.available = true;
+		} else if (navigator.webkitGetGamepads) {
+			navigator.getGamepads = navigator.webkitGetGamepads;
+			this.available = true;
 		}
-	(closing script tag omitted in comment to avoid confusing browser)
-	*/
-	(function (bitsy) {
-	'use strict';
-	var x,y,room;
-	var mx,my;
-	var hackOptions = {
-		background: "black",
-		scaleMode: "MULTIPLES", // use "FIT" if you prefer size to pixel accuracy
-		allowDownscaling: false,
-		disableFeedbackTexture: false, // set this to false if you want to use the feedback texture
-		init: function() {
-			// you can set up any custom uniforms you have here if needed
-			// e.g. glazy.glLocations.myUniform = glazy.gl.getUniformLocation(glazy.shader.program, 'myUniform');
-			glazy.glLocations.player = glazy.gl.getUniformLocation(glazy.shader.program, 'player');
-			glazy.glLocations.mouse = glazy.gl.getUniformLocation(glazy.shader.program, 'mouse');
+
+		if (this.available) {
+			console.log("Gamepad API available");
+			if (navigator.userAgent.indexOf('Firefox/') != -1) {
+				// listen to connection events for firefox
+				window.addEventListener("gamepadconnected", function (event) {
+					console.log("gamepad connection event");
+					this.pollconnections(event);
+				}.bind(this));
+				window.addEventListener("gamepaddisconnected", function (event) {
+					console.log("gamepad connection event");
+					this.pollconnections(event);
+				}.bind(this));
+			} else {
+				this.pollEveryFrame = true;
+			}
+		} else {
+			console.error("Gamepad API not available");
+		}
+	},
+
+	pollconnections: function (event) {
+		this.connected = false;
+
+		// assume existing players' gamepads aren't enabled until they're found
+		for (var i = 0; i < this.players.length; ++i) {
+			if (this.players[i]) {
+				this.players[i].disabled = true;
+			}
+		}
+
+		var gps = navigator.getGamepads();
+		for (var i = 0; i < gps.length; ++i) {
+			var gp = gps[i];
+			if (gp) {
+				if (gp.connected) {
+					if (this.players[gp.index] == null) {
+						// new player
+						gp.down = [];
+						gp.justDown = [];
+						gp.justUp = [];
+						gp.axesPrev = [];
+						this.players[gp.index] = gp;
+					} else {
+						// returning player, copy old button states before replacing
+						gp.down = this.players[gp.index].down;
+						gp.justDown = this.players[gp.index].justDown;
+						gp.justUp = this.players[gp.index].justUp;
+						gp.axesPrev = this.players[gp.index].axesPrev;
+						this.players[gp.index] = gp;
+					}
+					this.connected = true;
+					this.players[gp.index].disabled = false;
+				} else {
+					this.players[gp.index] = null;
+				}
+			}
+		}
+	},
+
+	update: function () {
+		// store the previous axis values
+		// has to be done before pollConnections since that will get the new axis values
+		for (var i = 0; i < this.players.length; ++i) {
+			var p = this.getPlayer(i);
+			p.axesPrev = p.axes.slice();
+		}
+
+		// poll connections and update gamepad states every frame because chrome's a lazy bum
+		if (this.pollEveryFrame) {
+			this.pollconnections();
+		}
+
+		for (var i = 0; i < this.players.length; ++i) {
+			var p = this.getPlayer(i);
+			if (p && p != null) {
+				for (var j = 0; j < p.buttons.length; ++j) {
+					if (p.buttons[j].pressed) {
+						p.justDown[j] = !(p.down[j] === true);
+						p.down[j] = true;
+						p.justUp[j] = false;
+					} else {
+						p.justUp[j] = p.down[j] === true;
+						p.down[j] = false;
+						p.justDown[j] = false;
+					}
+				}
+			}
+
+		}
+	},
+
+	// returns _player's gamepad
+	// if one doesn't exist, returns an object with gamepad properties reflecting a null state
+	getPlayer: function (_player) {
+		if (this.players[_player] && this.players[_player].connected && !this.players[_player].disabled) {
+			return this.players[_player];
+		} else {
+			return {
+				connected: false,
+				disabled: true,
+				down: [],
+				justDown: [],
+				justUp: [],
+				axes: [],
+				axesPrev: [],
+				buttons: []
+			};
+		}
+	},
+
+	// returns an array representing _length axes for _player at _offset
+	// if abs(an axis value) is < deadZone, returns 0 instead
+	// if abs(1-an axis value) is < snapZone, returns 1/-1 instead
+	// otherwise, returns the axis value, normalized between deadZone and (1-snapZone)
+	// if _offset isn't set, sets to 0
+	// if _length isn't set, sets to 2
+	// if _player isn't set (or -1), returns the sum of everyone's axes
+	// if _prev is set and true, uses the axis values from the previous frame instead of the current one
+	getAxes: function (_offset, _length, _player, _prev) {
+		if (arguments.length < 4) {
+			_prev = false;
+			if (arguments.length < 3) {
+				_player = -1;
+				if (arguments.length < 2) {
+					_length = 2;
+					if (arguments.length < 1) {
+						_offset = 0;
+					}
+				}
+			}
+		}
+
+		var axes = [];
+		for (var i = 0; i < _length; ++i) {
+			axes[i] = 0;
+		}
+		if (_player == -1) {
+			for (var i = 0; i < this.players.length; ++i) {
+				var a = this.getAxes(_offset, _length, i, _prev);
+				for (var j = 0; j < a.length; ++j) {
+					axes[j] += a[j];
+				}
+			}
+		} else {
+			var p = this.getPlayer(_player);
+			var a = _prev ? p.axesPrev : p.axes;
+			a = a.slice(_offset, _offset + _length);
+			for (var i = 0; i < a.length; ++i) {
+				if (Math.abs(a[i]) < this.deadZone) {
+					axes[i] += 0;
+				} else if (Math.abs(1.0 - a[i]) < this.snapZone) {
+					axes[i] += 1;
+				} else if (Math.abs(-1.0 - a[i]) < this.snapZone) {
+					axes[i] -= 1;
+				} else {
+					axes[i] += Math.sign(a[i]) * (Math.abs(a[i]) - this.deadZone) / (1.0 - this.snapZone - this.deadZone);
+				}
+			}
+		}
+		return axes;
+	},
+	// returns getAxes(_axis,1,_player)[0]
+	// if _player isn't set, returns the sum of everyone's axis
+	// if _prev is set and true, uses the axis values from the previous frame instead of the current one
+	getAxis: function (_axis, _player, _prev) {
+		if (arguments.length < 3) {
+			_prev = false;
+			if (arguments.length < 2) {
+				_player = -1;
+			}
+		}
+		return this.getAxes(_axis, 1, _player, _prev)[0];
+	},
+
+	// returns true if _axis is past _threshold in _direction
+	// if _direction isn't set, assumes the sign of _theshold is the direction (e.g. if the theshold is -0.5, it will check if _axis is < -0.5)
+	// if _player isn't set, returns true for any player
+	// if _prev is set and true, uses the axis values from the previous frame instead of the current one
+	axisPast: function (_axis, _threshold, _direction, _player, _prev) {
+		if (arguments.length < 5) {
+			_prev = false;
+			if (arguments.length < 4) {
+				_player = -1;
+				if (arguments.length < 3) {
+					_direction = Math.sign(_threshold);
+					if (arguments.length < 2) {
+						console.error("must specify axis and threshold");
+					}
+				}
+			}
+		}
+
+		var a = this.getAxis(_axis, _player, _prev);
+
+
+
+		if (_direction < 0) {
+			return a < _threshold;
+		} else if (_direction > 0) {
+			return a > _threshold;
+		} else {
+			console.error("direction can't be zero");
+		}
+	},
+	// returns true if _axis is past _threshold in _direction and WAS NOT in previous update
+	// if _direction isn't set, assumes the sign of _theshold is the direction (e.g. if the theshold is -0.5, it will check if _axis is < -0.5)
+	// if _player isn't set, returns true for any player
+	axisJustPast: function (_axis, _threshold, _direction, _player) {
+		if (arguments.length < 4) {
+			_player = -1;
+			if (arguments.length < 3) {
+				_direction = Math.sign(_threshold);
+				if (arguments.length < 2) {
+					console.error("must specify axis and threshold");
+				}
+			}
+		}
+		return this.axisPast(_axis, _threshold, _direction, _player, false) && !this.axisPast(_axis, _threshold, _direction, _player, true);
+	},
+
+	// returns [x,y] representing the dpad for _player
+	// if _player isn't set (or -1), returns the sum of everyone's dpads
+	getDpad: function (_player) {
+		if (arguments.length < 1) {
+			_player = -1;
+		}
+		var dpad = [0, 0];
+		if (_player == -1) {
+			for (var i = 0; i < this.players.length; ++i) {
+				var d = this.getDpad(i);
+				dpad[0] += d[0];
+				dpad[1] += d[1];
+			}
+		} else {
+			if (this.isDown(this.DPAD_RIGHT, _player)) {
+				dpad[0] += 1;
+			}
+			if (this.isDown(this.DPAD_LEFT, _player)) {
+				dpad[0] -= 1;
+			}
+			if (this.isDown(this.DPAD_UP, _player)) {
+				dpad[1] += 1;
+			}
+			if (this.isDown(this.DPAD_DOWN, _player)) {
+				dpad[1] -= 1;
+			}
+		}
+		return dpad;
+	},
+
+	// returns true if _player's _btn is currently down
+	// if _player isn't set (or -1), returns true for any player
+	isDown: function (_btn, _player) {
+		if (arguments.length < 2) {
+			_player = -1;
+			if (arguments.length < 1) {
+				console.error("must specify a button");
+			}
+		}
+		if (_player == -1) {
+			for (var i = 0; i < this.players.length; ++i) {
+				if (this.isDown(_btn, i)) {
+					return true;
+				}
+			}
+			return false;
+		} else {
+			return this.getPlayer(_player).down[_btn] === true;
+		}
+	},
+
+	// returns true if _player's _btn is not currently down
+	// if _player isn't set (or -1), returns true for any player
+	isUp: function (_btn, _player) {
+		return !this.isDown(_btn, _player);
+	},
+
+	// returns true if _player's _btn is currently down and WAS NOT down in previous update
+	// if _player isn't set (or -1), returns true for any player
+	isJustDown: function (_btn, _player) {
+		if (arguments.length < 2) {
+			_player = -1;
+			if (arguments.length < 1) {
+				console.error("must specify a button");
+			}
+		}
+		if (_player == -1) {
+			for (var i = 0; i < this.players.length; ++i) {
+				if (this.isJustDown(_btn, i)) {
+					return true;
+				}
+			}
+			return false;
+		} else {
+			return this.getPlayer(_player).justDown[_btn] === true;
+		}
+	},
+
+	// returns true if _player's _btn is currently NOT down and WAS down in previous update
+	// if _player isn't set (or -1), returns true for any player
+	isJustUp: function (_btn, _player) {
+		if (arguments.length < 2) {
+			_player = -1;
+			if (arguments.length < 1) {
+				console.error("must specify a button");
+			}
+		}
+		if (_player == -1) {
+			for (var i = 0; i < this.players.length; ++i) {
+				if (this.isJustUp(_btn, i)) {
+					return true;
+				}
+			}
+			return false;
+		} else {
+			return this.getPlayer(_player).justUp[_btn] === true
+		}	}
+};
+
+var inputGamepads = gamepads;
+
+/**
+🎮
+@file gamepad input
+@summary HTML5 gamepad support
+@license MIT
+@version 2.0.0
+@requires Bitsy Version: 5.1
+@author Sean S. LeBlanc
+
+@description
+Adds support for gamepad input.
+
+Directional input is mapped to the left and right analog sticks, the dpad, and the face buttons (e.g. ABXY).
+The same hold-to-move logic used for keyboard input is shared with the gamepad input.
+
+HOW TO USE:
+Copy-paste this script into a script tag after the bitsy source
+*/
+
+before('startExportedGame', inputGamepads.init.bind(inputGamepads));
+var empty = function () {};
+
+var move = function (dpad, face, axis, axis2, axispast, axisdir, key) {
+	// keydown
+	if (
+		inputGamepads.isJustDown(dpad) ||
+		inputGamepads.isJustDown(face) ||
+		inputGamepads.axisJustPast(axis, axispast, axisdir) ||
+		(
+			bitsy.playerHoldToMoveTimer <= 0 && (
+				inputGamepads.isDown(dpad) ||
+				inputGamepads.isDown(face) ||
+				inputGamepads.axisPast(axis, axispast, axisdir)
+			)
+		)
+	) {
+		bitsy.curPlayerDirection = bitsy.Direction.None;
+		bitsy.input.onkeydown({
+			keyCode: key,
+			preventDefault: empty
+		});
+	}
+
+	// keyup
+	if (
+		inputGamepads.isJustUp(dpad) ||
+		inputGamepads.isJustUp(face) ||
+		inputGamepads.axisJustPast(axis, axispast, -axisdir)
+	) {
+		bitsy.input.onkeyup({
+			keyCode: key,
+			preventDefault: empty
+		});
+	}
+};
+
+before('update', function(){
+	move(inputGamepads.DPAD_LEFT, inputGamepads.X, inputGamepads.LSTICK_H, inputGamepads.RSTICK_H, -0.5, -1, bitsy.key.left);
+	move(inputGamepads.DPAD_RIGHT, inputGamepads.B, inputGamepads.LSTICK_H, inputGamepads.RSTICK_H, 0.5, 1, bitsy.key.right);
+	move(inputGamepads.DPAD_UP, inputGamepads.Y, inputGamepads.LSTICK_V, inputGamepads.RSTICK_V, -0.5, -1, bitsy.key.up);
+	move(inputGamepads.DPAD_DOWN, inputGamepads.A, inputGamepads.LSTICK_V, inputGamepads.RSTICK_V, 0.5, 1, bitsy.key.down);
+});
+after('update', function(){
+	inputGamepads.update();
+});
+
+var classCallCheck=function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")},createClass=function(){function t(t,e){for(var i=0;i<e.length;i++){var s=e[i];s.enumerable=s.enumerable||!1, s.configurable=!0, "value"in s&&(s.writable=!0), Object.defineProperty(t,s.key,s);}}return function(e,i,s){return i&&t(e.prototype,i), s&&t(e,s), e}}();function Gl(t){if(!Gl.context&&(Gl.context=t.getContext("webgl")||t.getContext("experimental-webgl"), !Gl.context))throw"No WebGL support";return Gl.context}var Shader=function(){function t(e,i){classCallCheck(this,t), this.gl=new Gl, this.vertSource=e, this.fragSource=i, this.program=this.gl.createProgram();try{this.vertShader=this.compileShader(this.vertSource,this.gl.VERTEX_SHADER), this.fragShader=this.compileShader(this.fragSource,this.gl.FRAGMENT_SHADER);}catch(t){throw this.gl.deleteProgram(this.program), delete this.program, console.error("Couldn't create shader: ",t), t}this.gl.attachShader(this.program,this.vertShader), this.gl.deleteShader(this.vertShader), delete this.vertShader, this.gl.attachShader(this.program,this.fragShader), this.gl.deleteShader(this.fragShader), delete this.fragShader, this.gl.linkProgram(this.program);}return createClass(t,[{key:"compileShader",value:function(t,e){try{var i=this.gl.createShader(e);if(this.gl.shaderSource(i,t), this.gl.compileShader(i), !this.gl.getShaderParameter(i,this.gl.COMPILE_STATUS))throw this.gl.getShaderInfoLog(i);return i}catch(i){throw console.error("Couldn't compile shader ("+e+"): ",t,i), i}}},{key:"useProgram",value:function(){this.gl.useProgram(this.program);}}]), t}(),Texture=function(){function t(e,i){classCallCheck(this,t), this.gl=new Gl, this.source=e, this.texture=this.gl.createTexture(), this.bind(i), this.gl.texImage2D(this.gl.TEXTURE_2D,0,this.gl.RGBA,this.gl.RGBA,this.gl.UNSIGNED_BYTE,this.source), this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL,!0), this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_MAG_FILTER,this.gl.NEAREST), this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_MIN_FILTER,this.gl.NEAREST), this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_WRAP_S,this.gl.CLAMP_TO_EDGE), this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_WRAP_T,this.gl.CLAMP_TO_EDGE), this.gl.bindTexture(this.gl.TEXTURE_2D,null);}return createClass(t,[{key:"update",value:function(){this.bind(), this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL,!0), this.gl.texImage2D(this.gl.TEXTURE_2D,0,this.gl.RGBA,this.gl.RGBA,this.gl.UNSIGNED_BYTE,this.source), this.gl.bindTexture(this.gl.TEXTURE_2D,null);}},{key:"bind",value:function(t){var e=t||this.lastBoundId||0;this.gl.activeTexture(this.gl.TEXTURE0+e), this.gl.bindTexture(this.gl.TEXTURE_2D,this.texture), this.lastBoundId=e;}}]), t}(),WebGLazy=function(){function t(e){var i=this;classCallCheck(this,t), this.main=function(t){i.lastTime=i.curTime, i.curTime=(t||i.now())-i.startTime, i.deltaTime=i.curTime-i.lastTime, i.accumulator+=i.deltaTime, i.accumulator>i.timestep&&(i.render(), i.accumulator-=i.timestep), i.requestAnimationFrame(i.main);}, this.options=e||{}, this.sources=this.options.sources||["canvas","video","img"], this.source=this.options.source||this.getSource(), this.hideSource=void 0===this.options.hideSource||this.options.hideSource, this.background=this.options.background||"black", this.options.scaleMultiplier=this.options.scaleMultiplier||1, this.scaleMultiplier=this.options.scaleMultiplier, this.scaleMode=void 0!==this.options.scaleMode?this.options.scaleMode:this.constructor.SCALE_MODES.FIT, this.allowDownscaling=this.options.allowDownscaling||!1, this.timestep=this.options.timestep||1/60*1e3, this.disableFeedbackTexture=!!this.options.disableFeedbackTexture, this.disableMouseEvents=!!this.options.disableMouseEvents, (void 0===this.options.autoInit||this.options.autoInit)&&this.init();}return createClass(t,[{key:"getSource",value:function(){var t,e=[];for(t=0;t<this.sources.length;++t)e.push(Array.prototype.slice.call(document.getElementsByTagName(this.sources[t])));if(0===(e=Array.prototype.concat.apply([],e)).length)throw"Couldn't find an element from "+this.sources+" to use as a source";return e[0]}},{key:"insertStylesheet",value:function(){this.style=document.createElement("style"), document.head.appendChild(this.style), this.style.innerHTML="\nhtml,body,div#canvasContainer{\n\tpadding:0;\n\tmargin:0;\n\n\twidth:100%;\n\theight:100%;\n\n\ttop:0;\n\tleft:0;\n\tright:0;\n\tbottom:0;\n\n\tbackground: "+this.background+";\n\tcolor:#FFFFFF;\n\n\toverflow:hidden;\n\n\t"+(this.hideSource?"visibility: hidden!important;":"")+"\n}\n\ncanvas#outputCanvas{\n\timage-rendering: optimizeSpeed;\n\timage-rendering: -webkit-crisp-edges;\n\timage-rendering: -moz-crisp-edges;\n\timage-rendering: -o-crisp-edges; \n\timage-rendering: crisp-edges;\n\timage-rendering: -webkit-optimize-contrast;\n\timage-rendering: optimize-contrast;\n\timage-rendering: pixelated;\n\t-ms-interpolation-mode: nearest-neighbor;\n\n\tposition:absolute;\n\tmargin:auto;\n\ttop:0;\n\tleft:-1000%;\n\tright:-1000%;\n\tbottom:0;\n\n\t\t\t"+(this.hideSource?" visibility: visible!important;":"")+"\n\t\t\t"+(this.scaleMode===this.constructor.SCALE_MODES.MULTIPLES?"\n\ttransition:\n\t\twidth  0.2s cubic-bezier(0.22, 1.84, 0.88, 0.77),\n\t\theight 0.2s cubic-bezier(0.22, 1.84, 0.88, 0.77);":"")+"\n};";}},{key:"init",value:function(){this.size={x:this.source.width||this.source.style.width,y:this.source.height||this.source.style.height}, this.size.x*=this.options.scaleMultiplier||1, this.size.y*=this.options.scaleMultiplier||1, this.ratio=this.size.x/this.size.y, this.insertStylesheet(), this.canvasContainer=document.createElement("div"), this.canvasContainer.id="canvasContainer", this.allowDownscaling||(this.canvasContainer.style.minWidth=this.size.x+"px", this.canvasContainer.style.minHeight=this.size.y+"px"), this.canvas=document.createElement("canvas"), this.canvas.id="outputCanvas", this.canvas.width=this.size.x, this.canvas.height=this.size.y, this.canvas.style.width=this.canvas.style.height=0, this.canvasContainer.appendChild(this.canvas), document.body.appendChild(this.canvasContainer);try{this.gl=new Gl(this.canvas), this.render=this.renderGL;}catch(t){console.warn("Falling back to canvas rendering: ",t), this.render=this.renderCanvas, this.canvas2d=this.canvas.getContext("2d");}if(this.gl){var t,e,i=document.getElementById("shader-vert"),s=document.getElementById("shader-frag");i&&(t=i.innerHTML), s&&(e=s.innerHTML), t=t||"\n// default vertex shader\nattribute vec4 position;\nvoid main() {\n\tgl_Position = position;\n}", e=e||"\n// default fragment shader\nprecision mediump float;\nuniform sampler2D tex0;\nuniform sampler2D tex1;\nuniform vec2 resolution;\n\nvoid main() {\n\tvec2 coord = gl_FragCoord.xy;\n\tvec2 uv = coord.xy / resolution.xy;\n\tgl_FragColor = vec4(texture2D(tex0, uv).rgb, 1.0);\n}", this.shader=new Shader(t,e), this.vertices=new Float32Array([-1,-1,1,-1,-1,1,1,-1,1,1,-1,1]), this.vertexBuffer=this.gl.createBuffer(), this.gl.bindBuffer(this.gl.ARRAY_BUFFER,this.vertexBuffer), this.gl.bufferData(this.gl.ARRAY_BUFFER,this.vertices,this.gl.STATIC_DRAW), this.textureSource=new Texture(this.source,0), this.disableFeedbackTexture||(this.textureFeedback=new Texture(this.canvas,1)), this.glLocations={position:this.gl.getAttribLocation(this.shader.program,"position"),tex0:this.gl.getUniformLocation(this.shader.program,"tex0"),tex1:this.gl.getUniformLocation(this.shader.program,"tex1"),time:this.gl.getUniformLocation(this.shader.program,"time"),resolution:this.gl.getUniformLocation(this.shader.program,"resolution")}, this.gl.enableVertexAttribArray(this.glLocations.position), this.gl.viewport(0,0,this.size.x,this.size.y), this.shader.useProgram(), this.gl.vertexAttribPointer(this.glLocations.position,2,this.gl.FLOAT,!1,0,0), this.gl.clearColor(0,0,0,1), this.gl.uniform1i(this.glLocations.tex0,0), this.gl.uniform1i(this.glLocations.tex1,1), this.gl.uniform2f(this.glLocations.resolution,this.size.x,this.size.y);}window.onresize=this.onResize.bind(this), window.onresize(), this.disableMouseEvents||(this.canvas.onmousedown=this.onMouseEvent.bind(this), this.canvas.onmouseup=this.onMouseEvent.bind(this), this.canvas.onmousemove=this.onMouseEvent.bind(this), this.canvas.onmouseenter=this.onMouseEvent.bind(this), this.canvas.onmouseexit=this.onMouseEvent.bind(this), this.canvas.onmouseover=this.onMouseEvent.bind(this), this.canvas.onmouseout=this.onMouseEvent.bind(this), this.canvas.onmouseleave=this.onMouseEvent.bind(this), this.canvas.onclick=this.onMouseEvent.bind(this), this.canvas.ondblclick=this.onMouseEvent.bind(this), this.canvas.oncontextmenu=this.onMouseEvent.bind(this), this.canvas.ontouchstart=this.onTouchEvent.bind(this), this.canvas.ontouchend=this.onTouchEvent.bind(this), this.canvas.ontouchmove=this.onTouchEvent.bind(this), this.canvas.touchcancel=this.onTouchEvent.bind(this)), this.accumulator=0, "performance"in window?this.now=function(){return window.performance.now()}:this.now=function(){return window.Date.now()}, "requestAnimationFrame"in window?this.requestAnimationFrame=function(t){window.requestAnimationFrame(t);}:this.requestAnimationFrame=function(t){setTimeout(t,-1);}, this.startTime=this.now(), this.curTime=this.lastTime=0, this.main(this.curTime);}},{key:"renderCanvas",value:function(){this.canvas2d.clearRect(0,0,this.size.x,this.size.y), this.canvas2d.drawImage(this.source,0,0);}},{key:"renderGL",value:function(){this.textureSource.update(), this.gl.uniform1f(this.glLocations.time,this.curTime), this.gl.clear(this.gl.COLOR_BUFFER_BIT|this.gl.DEPTH_BUFFER_BIT), this.shader.useProgram(), this.textureSource.bind(), this.disableFeedbackTexture||this.textureFeedback.bind(), this.gl.drawArrays(this.gl.TRIANGLES,0,this.vertices.length/2), this.disableFeedbackTexture||this.textureFeedback.update();}},{key:"onResize",value:function(){var t,e,i=this.canvasContainer.offsetWidth,s=this.canvasContainer.offsetHeight,n=i/s,o=this.constructor.SCALE_MODES,r=1;switch(n<this.ratio?s=Math.round(i/this.ratio):i=Math.round(s*this.ratio), this.scaleMode){case o.MULTIPLES:for(r=1, t=this.size.x, e=this.size.y;t+this.size.x<=i||e+this.size.y<=s;)t+=this.size.x, e+=this.size.y, r+=1;break;case o.FIT:t=i, e=s, r=i/this.size.x;break;case o.COVER:i=this.canvasContainer.offsetWidth, s=this.canvasContainer.offsetHeight, n<this.ratio?i=Math.round(s*this.ratio):s=Math.round(i/this.ratio), t=i, e=s, r=i/this.size.x;break;case o.NONE:r=1, t=this.size.x, e=this.size.y;}this.scaleMultiplier=this.options.scaleMultiplier*r, this.canvas.style.width=t+"px", this.canvas.style.height=e+"px";}},{key:"onMouseEvent",value:function(t){var e=this.canvas,i=this.source,s=e.offsetLeft+e.scrollLeft,n=e.offsetTop+e.scrollTop,o=i.offsetLeft+i.scrollLeft,r=i.offsetTop+i.scrollTop,a=1/this.scaleMultiplier,h=new MouseEvent(t.type,{screenX:(t.screenX-s)*a+o,screenY:(t.screenY-n)*a+r,clientX:(t.clientX-s)*a+o,clientY:(t.clientY-n)*a+r,altKey:t.altKey,shiftKey:t.shiftKey,metaKey:t.metaKey,button:t.button,buttons:t.buttons,relatedTarget:t.relatedTarget,region:t.region});i.dispatchEvent(h);}},{key:"onTouchEvent",value:function(t){var e=this.canvas,i=this.source,s=e.offsetLeft+e.scrollLeft,n=e.offsetTop+e.scrollTop,o=i.offsetLeft+i.scrollLeft,r=i.offsetTop+i.scrollTop,a=1/this.scaleMultiplier,h=function(t){return new Touch({identifier:t.identifier,force:t.force,rotationAngle:t.rotationAngle,target:t.target,radiusX:t.radiusX,radiusY:t.radiusY,pageX:(t.pageX-s)*a+o,pageY:(t.pageY-s)*a+o,screenX:(t.screenX-s)*a+o,screenY:(t.screenY-n)*a+r,clientX:(t.clientX-s)*a+o,clientY:(t.clientY-n)*a+r})},l=Array.from(event.touches).map(h),c=Array.from(event.targetTouches).map(h),u=Array.from(event.changedTouches).map(h),d=new event.constructor(event.type,{touches:l,targetTouches:c,changedTouches:u,ctrlKey:event.ctrlKey,shiftKey:event.shiftKey,altKey:event.altKey,metaKey:event.metaKey});i.dispatchEvent(d);}}]), t}();WebGLazy.SCALE_MODES=Object.freeze({FIT:"FIT",COVER:"COVER",MULTIPLES:"MULTIPLES",NONE:"NONE"});
+
+
+
+var hackOptions$1 = {
+	background: "black",
+	scaleMode: "MULTIPLES", // use "FIT" if you prefer size to pixel accuracy
+	allowDownscaling: false,
+	disableFeedbackTexture: false, // set this to false if you want to use the feedback texture
+	init: function() {
+		// you can set up any custom uniforms you have here if needed
+		// e.g. glazy.glLocations.myUniform = glazy.gl.getUniformLocation(glazy.shader.program, 'myUniform');
+		glazy.glLocations.player = glazy.gl.getUniformLocation(glazy.shader.program, 'player');
+		glazy.glLocations.mouse = glazy.gl.getUniformLocation(glazy.shader.program, 'mouse');
+		glazy.glLocations.on = glazy.gl.getUniformLocation(glazy.shader.program, 'on');
+		x = bitsy.player().x;
+		y = bitsy.player().y;
+		room = bitsy.player().room;
+		document.getElementById('game').addEventListener('mousemove', function(event){
+			mx = event.clientX - event.currentTarget.offsetLeft;
+			my = event.clientY - event.currentTarget.offsetTop;
+			snap = false;
+		});
+	},
+	update: function() {
+		// you can update any custom uniforms you have here if needed
+		// e.g. glazy.gl.uniform1f(glazy.glLocations.myUniform, 0);
+		if(bitsy.player().room != room) {
+			room = bitsy.player().room;
 			x = bitsy.player().x;
 			y = bitsy.player().y;
-			room = bitsy.player().room;
-			document.getElementById('game').addEventListener('mousemove', function(event){
-				mx = event.clientX - event.currentTarget.offsetLeft;
-				my = event.clientY - event.currentTarget.offsetTop;
-			});
-		},
-		update: function() {
-			// you can update any custom uniforms you have here if needed
-			// e.g. glazy.gl.uniform1f(glazy.glLocations.myUniform, 0);
-			if(bitsy.player().room != room) {
-				room = bitsy.player().room;
-				x = bitsy.player().x;
-				y = bitsy.player().y;
-			} else {
-				x += (bitsy.player().x - x) * .1;
-				y += (bitsy.player().y - y) * .1;
-			}
-			glazy.gl.uniform2f(glazy.glLocations.player, (x+0.5)/8, 1 - ((y+0.5)/8));
-			glazy.gl.uniform2f(glazy.glLocations.mouse, mx/64, 1.0-my/64);
-		},
-	};
-
-	bitsy = bitsy && bitsy.hasOwnProperty('default') ? bitsy['default'] : bitsy;
-
-	var classCallCheck=function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")},createClass=function(){function t(t,e){for(var i=0;i<e.length;i++){var s=e[i];s.enumerable=s.enumerable||!1, s.configurable=!0, "value"in s&&(s.writable=!0), Object.defineProperty(t,s.key,s);}}return function(e,i,s){return i&&t(e.prototype,i), s&&t(e,s), e}}();function Gl(t){if(!Gl.context&&(Gl.context=t.getContext("webgl")||t.getContext("experimental-webgl"), !Gl.context))throw"No WebGL support";return Gl.context}var Shader=function(){function t(e,i){classCallCheck(this,t), this.gl=new Gl, this.vertSource=e, this.fragSource=i, this.program=this.gl.createProgram();try{this.vertShader=this.compileShader(this.vertSource,this.gl.VERTEX_SHADER), this.fragShader=this.compileShader(this.fragSource,this.gl.FRAGMENT_SHADER);}catch(t){throw this.gl.deleteProgram(this.program), delete this.program, console.error("Couldn't create shader: ",t), t}this.gl.attachShader(this.program,this.vertShader), this.gl.deleteShader(this.vertShader), delete this.vertShader, this.gl.attachShader(this.program,this.fragShader), this.gl.deleteShader(this.fragShader), delete this.fragShader, this.gl.linkProgram(this.program);}return createClass(t,[{key:"compileShader",value:function(t,e){try{var i=this.gl.createShader(e);if(this.gl.shaderSource(i,t), this.gl.compileShader(i), !this.gl.getShaderParameter(i,this.gl.COMPILE_STATUS))throw this.gl.getShaderInfoLog(i);return i}catch(i){throw console.error("Couldn't compile shader ("+e+"): ",t,i), i}}},{key:"useProgram",value:function(){this.gl.useProgram(this.program);}}]), t}(),Texture=function(){function t(e,i){classCallCheck(this,t), this.gl=new Gl, this.source=e, this.texture=this.gl.createTexture(), this.bind(i), this.gl.texImage2D(this.gl.TEXTURE_2D,0,this.gl.RGBA,this.gl.RGBA,this.gl.UNSIGNED_BYTE,this.source), this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL,!0), this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_MAG_FILTER,this.gl.NEAREST), this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_MIN_FILTER,this.gl.NEAREST), this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_WRAP_S,this.gl.CLAMP_TO_EDGE), this.gl.texParameteri(this.gl.TEXTURE_2D,this.gl.TEXTURE_WRAP_T,this.gl.CLAMP_TO_EDGE), this.gl.bindTexture(this.gl.TEXTURE_2D,null);}return createClass(t,[{key:"update",value:function(){this.bind(), this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL,!0), this.gl.texImage2D(this.gl.TEXTURE_2D,0,this.gl.RGBA,this.gl.RGBA,this.gl.UNSIGNED_BYTE,this.source), this.gl.bindTexture(this.gl.TEXTURE_2D,null);}},{key:"bind",value:function(t){var e=t||this.lastBoundId||0;this.gl.activeTexture(this.gl.TEXTURE0+e), this.gl.bindTexture(this.gl.TEXTURE_2D,this.texture), this.lastBoundId=e;}}]), t}(),WebGLazy=function(){function t(e){var i=this;classCallCheck(this,t), this.main=function(t){i.lastTime=i.curTime, i.curTime=(t||i.now())-i.startTime, i.deltaTime=i.curTime-i.lastTime, i.accumulator+=i.deltaTime, i.accumulator>i.timestep&&(i.render(), i.accumulator-=i.timestep), i.requestAnimationFrame(i.main);}, this.options=e||{}, this.sources=this.options.sources||["canvas","video","img"], this.source=this.options.source||this.getSource(), this.hideSource=void 0===this.options.hideSource||this.options.hideSource, this.background=this.options.background||"black", this.options.scaleMultiplier=this.options.scaleMultiplier||1, this.scaleMultiplier=this.options.scaleMultiplier, this.scaleMode=void 0!==this.options.scaleMode?this.options.scaleMode:this.constructor.SCALE_MODES.FIT, this.allowDownscaling=this.options.allowDownscaling||!1, this.timestep=this.options.timestep||1/60*1e3, this.disableFeedbackTexture=!!this.options.disableFeedbackTexture, this.disableMouseEvents=!!this.options.disableMouseEvents, (void 0===this.options.autoInit||this.options.autoInit)&&this.init();}return createClass(t,[{key:"getSource",value:function(){var t,e=[];for(t=0;t<this.sources.length;++t)e.push(Array.prototype.slice.call(document.getElementsByTagName(this.sources[t])));if(0===(e=Array.prototype.concat.apply([],e)).length)throw"Couldn't find an element from "+this.sources+" to use as a source";return e[0]}},{key:"insertStylesheet",value:function(){this.style=document.createElement("style"), document.head.appendChild(this.style), this.style.innerHTML="\nhtml,body,div#canvasContainer{\n\tpadding:0;\n\tmargin:0;\n\n\twidth:100%;\n\theight:100%;\n\n\ttop:0;\n\tleft:0;\n\tright:0;\n\tbottom:0;\n\n\tbackground: "+this.background+";\n\tcolor:#FFFFFF;\n\n\toverflow:hidden;\n\n\t"+(this.hideSource?"visibility: hidden!important;":"")+"\n}\n\ncanvas#outputCanvas{\n\timage-rendering: optimizeSpeed;\n\timage-rendering: -webkit-crisp-edges;\n\timage-rendering: -moz-crisp-edges;\n\timage-rendering: -o-crisp-edges; \n\timage-rendering: crisp-edges;\n\timage-rendering: -webkit-optimize-contrast;\n\timage-rendering: optimize-contrast;\n\timage-rendering: pixelated;\n\t-ms-interpolation-mode: nearest-neighbor;\n\n\tposition:absolute;\n\tmargin:auto;\n\ttop:0;\n\tleft:-1000%;\n\tright:-1000%;\n\tbottom:0;\n\n\t\t\t"+(this.hideSource?" visibility: visible!important;":"")+"\n\t\t\t"+(this.scaleMode===this.constructor.SCALE_MODES.MULTIPLES?"\n\ttransition:\n\t\twidth  0.2s cubic-bezier(0.22, 1.84, 0.88, 0.77),\n\t\theight 0.2s cubic-bezier(0.22, 1.84, 0.88, 0.77);":"")+"\n};";}},{key:"init",value:function(){this.size={x:this.source.width||this.source.style.width,y:this.source.height||this.source.style.height}, this.size.x*=this.options.scaleMultiplier||1, this.size.y*=this.options.scaleMultiplier||1, this.ratio=this.size.x/this.size.y, this.insertStylesheet(), this.canvasContainer=document.createElement("div"), this.canvasContainer.id="canvasContainer", this.allowDownscaling||(this.canvasContainer.style.minWidth=this.size.x+"px", this.canvasContainer.style.minHeight=this.size.y+"px"), this.canvas=document.createElement("canvas"), this.canvas.id="outputCanvas", this.canvas.width=this.size.x, this.canvas.height=this.size.y, this.canvas.style.width=this.canvas.style.height=0, this.canvasContainer.appendChild(this.canvas), document.body.appendChild(this.canvasContainer);try{this.gl=new Gl(this.canvas), this.render=this.renderGL;}catch(t){console.warn("Falling back to canvas rendering: ",t), this.render=this.renderCanvas, this.canvas2d=this.canvas.getContext("2d");}if(this.gl){var t,e,i=document.getElementById("shader-vert"),s=document.getElementById("shader-frag");i&&(t=i.innerHTML), s&&(e=s.innerHTML), t=t||"\n// default vertex shader\nattribute vec4 position;\nvoid main() {\n\tgl_Position = position;\n}", e=e||"\n// default fragment shader\nprecision mediump float;\nuniform sampler2D tex0;\nuniform sampler2D tex1;\nuniform vec2 resolution;\n\nvoid main() {\n\tvec2 coord = gl_FragCoord.xy;\n\tvec2 uv = coord.xy / resolution.xy;\n\tgl_FragColor = vec4(texture2D(tex0, uv).rgb, 1.0);\n}", this.shader=new Shader(t,e), this.vertices=new Float32Array([-1,-1,1,-1,-1,1,1,-1,1,1,-1,1]), this.vertexBuffer=this.gl.createBuffer(), this.gl.bindBuffer(this.gl.ARRAY_BUFFER,this.vertexBuffer), this.gl.bufferData(this.gl.ARRAY_BUFFER,this.vertices,this.gl.STATIC_DRAW), this.textureSource=new Texture(this.source,0), this.disableFeedbackTexture||(this.textureFeedback=new Texture(this.canvas,1)), this.glLocations={position:this.gl.getAttribLocation(this.shader.program,"position"),tex0:this.gl.getUniformLocation(this.shader.program,"tex0"),tex1:this.gl.getUniformLocation(this.shader.program,"tex1"),time:this.gl.getUniformLocation(this.shader.program,"time"),resolution:this.gl.getUniformLocation(this.shader.program,"resolution")}, this.gl.enableVertexAttribArray(this.glLocations.position), this.gl.viewport(0,0,this.size.x,this.size.y), this.shader.useProgram(), this.gl.vertexAttribPointer(this.glLocations.position,2,this.gl.FLOAT,!1,0,0), this.gl.clearColor(0,0,0,1), this.gl.uniform1i(this.glLocations.tex0,0), this.gl.uniform1i(this.glLocations.tex1,1), this.gl.uniform2f(this.glLocations.resolution,this.size.x,this.size.y);}window.onresize=this.onResize.bind(this), window.onresize(), this.disableMouseEvents||(this.canvas.onmousedown=this.onMouseEvent.bind(this), this.canvas.onmouseup=this.onMouseEvent.bind(this), this.canvas.onmousemove=this.onMouseEvent.bind(this), this.canvas.onmouseenter=this.onMouseEvent.bind(this), this.canvas.onmouseexit=this.onMouseEvent.bind(this), this.canvas.onmouseover=this.onMouseEvent.bind(this), this.canvas.onmouseout=this.onMouseEvent.bind(this), this.canvas.onmouseleave=this.onMouseEvent.bind(this), this.canvas.onclick=this.onMouseEvent.bind(this), this.canvas.ondblclick=this.onMouseEvent.bind(this), this.canvas.oncontextmenu=this.onMouseEvent.bind(this), this.canvas.ontouchstart=this.onTouchEvent.bind(this), this.canvas.ontouchend=this.onTouchEvent.bind(this), this.canvas.ontouchmove=this.onTouchEvent.bind(this), this.canvas.touchcancel=this.onTouchEvent.bind(this)), this.accumulator=0, "performance"in window?this.now=function(){return window.performance.now()}:this.now=function(){return window.Date.now()}, "requestAnimationFrame"in window?this.requestAnimationFrame=function(t){window.requestAnimationFrame(t);}:this.requestAnimationFrame=function(t){setTimeout(t,-1);}, this.startTime=this.now(), this.curTime=this.lastTime=0, this.main(this.curTime);}},{key:"renderCanvas",value:function(){this.canvas2d.clearRect(0,0,this.size.x,this.size.y), this.canvas2d.drawImage(this.source,0,0);}},{key:"renderGL",value:function(){this.textureSource.update(), this.gl.uniform1f(this.glLocations.time,this.curTime), this.gl.clear(this.gl.COLOR_BUFFER_BIT|this.gl.DEPTH_BUFFER_BIT), this.shader.useProgram(), this.textureSource.bind(), this.disableFeedbackTexture||this.textureFeedback.bind(), this.gl.drawArrays(this.gl.TRIANGLES,0,this.vertices.length/2), this.disableFeedbackTexture||this.textureFeedback.update();}},{key:"onResize",value:function(){var t,e,i=this.canvasContainer.offsetWidth,s=this.canvasContainer.offsetHeight,n=i/s,o=this.constructor.SCALE_MODES,r=1;switch(n<this.ratio?s=Math.round(i/this.ratio):i=Math.round(s*this.ratio), this.scaleMode){case o.MULTIPLES:for(r=1, t=this.size.x, e=this.size.y;t+this.size.x<=i||e+this.size.y<=s;)t+=this.size.x, e+=this.size.y, r+=1;break;case o.FIT:t=i, e=s, r=i/this.size.x;break;case o.COVER:i=this.canvasContainer.offsetWidth, s=this.canvasContainer.offsetHeight, n<this.ratio?i=Math.round(s*this.ratio):s=Math.round(i/this.ratio), t=i, e=s, r=i/this.size.x;break;case o.NONE:r=1, t=this.size.x, e=this.size.y;}this.scaleMultiplier=this.options.scaleMultiplier*r, this.canvas.style.width=t+"px", this.canvas.style.height=e+"px";}},{key:"onMouseEvent",value:function(t){var e=this.canvas,i=this.source,s=e.offsetLeft+e.scrollLeft,n=e.offsetTop+e.scrollTop,o=i.offsetLeft+i.scrollLeft,r=i.offsetTop+i.scrollTop,a=1/this.scaleMultiplier,h=new MouseEvent(t.type,{screenX:(t.screenX-s)*a+o,screenY:(t.screenY-n)*a+r,clientX:(t.clientX-s)*a+o,clientY:(t.clientY-n)*a+r,altKey:t.altKey,shiftKey:t.shiftKey,metaKey:t.metaKey,button:t.button,buttons:t.buttons,relatedTarget:t.relatedTarget,region:t.region});i.dispatchEvent(h);}},{key:"onTouchEvent",value:function(t){var e=this.canvas,i=this.source,s=e.offsetLeft+e.scrollLeft,n=e.offsetTop+e.scrollTop,o=i.offsetLeft+i.scrollLeft,r=i.offsetTop+i.scrollTop,a=1/this.scaleMultiplier,h=function(t){return new Touch({identifier:t.identifier,force:t.force,rotationAngle:t.rotationAngle,target:t.target,radiusX:t.radiusX,radiusY:t.radiusY,pageX:(t.pageX-s)*a+o,pageY:(t.pageY-s)*a+o,screenX:(t.screenX-s)*a+o,screenY:(t.screenY-n)*a+r,clientX:(t.clientX-s)*a+o,clientY:(t.clientY-n)*a+r})},l=Array.from(event.touches).map(h),c=Array.from(event.targetTouches).map(h),u=Array.from(event.changedTouches).map(h),d=new event.constructor(event.type,{touches:l,targetTouches:c,changedTouches:u,ctrlKey:event.ctrlKey,shiftKey:event.shiftKey,altKey:event.altKey,metaKey:event.metaKey});i.dispatchEvent(d);}}]), t}();WebGLazy.SCALE_MODES=Object.freeze({FIT:"FIT",COVER:"COVER",MULTIPLES:"MULTIPLES",NONE:"NONE"});
-
-	/**
-	@file utils
-	@summary miscellaneous bitsy utilities
-	@author Sean S. LeBlanc
-	*/
-
-	/*
-	Helper used to replace code in a script tag based on a search regex
-	To inject code without erasing original string, using capturing groups; e.g.
-		inject(/(some string)/,'injected before $1 injected after')
-	*/
-	function inject(searchRegex, replaceString) {
-		// find the relevant script tag
-		var scriptTags = document.getElementsByTagName('script');
-		var scriptTag;
-		var code;
-		for (var i = 0; i < scriptTags.length; ++i) {
-			scriptTag = scriptTags[i];
-			var matchesSearch = scriptTag.textContent.search(searchRegex) !== -1;
-			var isCurrentScript = scriptTag === document.currentScript;
-			if (matchesSearch && !isCurrentScript) {
-				code = scriptTag.textContent;
-				break;
-			}
+		} else {
+			x += (bitsy.player().x - x) * .1;
+			y += (bitsy.player().y - y) * .1;
 		}
-
-		// error-handling
-		if (!code) {
-			throw 'Couldn\'t find "' + searchRegex + '" in script tags';
+		var gx = inputGamepads.getAxis(inputGamepads.RSTICK_H);
+		var gy = inputGamepads.getAxis(inputGamepads.RSTICK_V);
+		if (Math.abs(gx) + Math.abs(gy) > 0) {
+			snap = true;
+			snapAngle = Math.atan2(gy,gx);
+		}if(snap) {
+			mx = x*8 + 4 + Math.cos(snapAngle);
+			my = y*8 + 4 + Math.sin(snapAngle);
 		}
+		on += ((onF ? 1.0 : 0.0) - on) * .1;
+		glazy.gl.uniform2f(glazy.glLocations.player, (x+0.5)/8, 1 - ((y+0.5)/8));
+		glazy.gl.uniform2f(glazy.glLocations.mouse, mx/64, 1.0-my/64);
+		glazy.gl.uniform1f(glazy.glLocations.on, on);
+	},
+};
 
-		// modify the content
-		code = code.replace(searchRegex, replaceString);
+var glazy;
+after('startExportedGame', function () {
+	glazy = new WebGLazy(hackOptions$1);
+	hackOptions$1.init();
+});
 
-		// replace the old script tag with a new one using our modified code
-		var newScriptTag = document.createElement('script');
-		newScriptTag.textContent = code;
-		scriptTag.insertAdjacentElement('afterend', newScriptTag);
-		scriptTag.remove();
-	}
+after('update', function () {
+	hackOptions$1.update();
+});
 
-	/**
-	 * Helper for getting an array with unique elements 
-	 * @param  {Array} array Original array
-	 * @return {Array}       Copy of array, excluding duplicates
-	 */
-	function unique(array) {
-		return array.filter(function (item, idx) {
-			return array.indexOf(item) === idx;
-		});
-	}
-
-	/**
-
-	@file kitsy-script-toolkit
-	@summary makes it easier and cleaner to run code before and after Bitsy functions or to inject new code into Bitsy script tags
-	@license WTFPL (do WTF you want)
-	@version 3.1.0
-	@requires Bitsy Version: 4.5, 4.6
-	@author @mildmojo
-
-	@description
-	HOW TO USE:
-	import {before, after, inject, addDialogTag, addDeferredDialogTag} from "./helpers/kitsy-script-toolkit";
-
-	before(targetFuncName, beforeFn);
-	after(targetFuncName, afterFn);
-	inject(searchRegex, replaceString);
-	addDialogTag(tagName, dialogFn);
-	addDeferredDialogTag(tagName, dialogFn);
-
-	For more info, see the documentation at:
-	https://github.com/seleb/bitsy-hacks/wiki/Coding-with-kitsy
-	*/
-
-	// Ex: after('load_game', function run() { alert('Loaded!'); });
-	function after(targetFuncName, afterFn) {
-		var kitsy = kitsyInit();
-		kitsy.queuedAfterScripts[targetFuncName] = kitsy.queuedAfterScripts[targetFuncName] || [];
-		kitsy.queuedAfterScripts[targetFuncName].push(afterFn);
-	}
-
-	function kitsyInit() {
-		// return already-initialized kitsy
-		if (bitsy.kitsy) {
-			return bitsy.kitsy;
-		}
-
-		// Initialize kitsy
-		bitsy.kitsy = {
-			queuedInjectScripts: [],
-			queuedBeforeScripts: {},
-			queuedAfterScripts: {}
-		};
-
-		var oldStartFunc = bitsy.startExportedGame;
-		bitsy.startExportedGame = function doAllInjections() {
-			// Only do this once.
-			bitsy.startExportedGame = oldStartFunc;
-
-			// Rewrite scripts and hook everything up.
-			doInjects();
-			applyAllHooks();
-
-			// Start the game
-			bitsy.startExportedGame.apply(this, arguments);
-		};
-
-		return bitsy.kitsy;
-	}
-
-
-	function doInjects() {
-		bitsy.kitsy.queuedInjectScripts.forEach(function (injectScript) {
-			inject(injectScript.searchRegex, injectScript.replaceString);
-		});
-		_reinitEngine();
-	}
-
-	function applyAllHooks() {
-		var allHooks = unique(Object.keys(bitsy.kitsy.queuedBeforeScripts).concat(Object.keys(bitsy.kitsy.queuedAfterScripts)));
-		allHooks.forEach(applyHook);
-	}
-
-	function applyHook(functionName) {
-		var superFn = bitsy[functionName];
-		var superFnLength = superFn.length;
-		var functions = [];
-		// start with befores
-		functions = functions.concat(bitsy.kitsy.queuedBeforeScripts[functionName] || []);
-		// then original
-		functions.push(superFn);
-		// then afters
-		functions = functions.concat(bitsy.kitsy.queuedAfterScripts[functionName] || []);
-
-		// overwrite original with one which will call each in order
-		bitsy[functionName] = function () {
-			var args = [].slice.call(arguments);
-			var i = 0;
-			runBefore.apply(this, arguments);
-
-			// Iterate thru sync & async functions. Run each, finally run original.
-			function runBefore() {
-				// All outta functions? Finish
-				if (i === functions.length) {
-					return;
-				}
-
-				// Update args if provided.
-				if (arguments.length > 0) {
-					args = [].slice.call(arguments);
-				}
-
-				if (functions[i].length > superFnLength) {
-					// Assume funcs that accept more args than the original are
-					// async and accept a callback as an additional argument.
-					functions[i++].apply(this, args.concat(runBefore.bind(this)));
-				} else {
-					// run synchronously
-					var newArgs = functions[i++].apply(this, args) || args;
-					runBefore.apply(this, newArgs);
-				}
-			}
-		};
-	}
-
-	function _reinitEngine() {
-		// recreate the script and dialog objects so that they'll be
-		// referencing the code with injections instead of the original
-		bitsy.scriptModule = new bitsy.Script();
-		bitsy.scriptInterpreter = bitsy.scriptModule.CreateInterpreter();
-
-		bitsy.dialogModule = new bitsy.Dialog();
-		bitsy.dialogRenderer = bitsy.dialogModule.CreateRenderer();
-		bitsy.dialogBuffer = bitsy.dialogModule.CreateBuffer();
-	}
-
-
-
-
-
-	var glazy;
-	after('startExportedGame', function () {
-		glazy = new WebGLazy(hackOptions);
-		hackOptions.init();
-	});
-
-	after('update', function () {
-		hackOptions.update();
-	});
-
-	}(window));
-
+}(window));
 </script>
-
 
 <script id='shader-frag' src='shader.frag.glsl' type='x-shader/x-fragment'>//SHADER</script>
 
