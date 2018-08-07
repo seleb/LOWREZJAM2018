@@ -7089,7 +7089,9 @@ CHAR 255
 // // }, 5000);
 </script>
 
+
 <script>
+
 /**
 😴
 @file canvas replacement
@@ -7129,7 +7131,6 @@ e.g.
 */
 (function (bitsy) {
 'use strict';
-
 var x,y,room;
 var mx,my;
 var onF = false, on = 0;
@@ -7149,13 +7150,6 @@ window.setOn = function(v) {
 	};
 	});
 })();
-
-// setTimeout(function(){
-// 	startMusic();
-// 	setOn(true);
-// }, 5000);
-
-
 var hackOptions = {
 	rows: 2, // number of rows per text box (bitsy default is 2)
 };
@@ -7201,6 +7195,22 @@ function inject(searchRegex, replaceString) {
 	newScriptTag.textContent = code;
 	scriptTag.insertAdjacentElement('afterend', newScriptTag);
 	scriptTag.remove();
+}
+
+/*
+Helper for getting image by name or id
+
+Args:
+	name: id or name of image to return
+	 map: map of images (e.g. `sprite`, `tile`, `item`)
+
+Returns: the image in the given map with the given name/id
+ */
+function getImage(name, map) {
+	var id = map.hasOwnProperty(name) ? name : Object.keys(map).find(function (e) {
+		return map[e].name == name;
+	});
+	return map[id];
 }
 
 /**
@@ -7307,12 +7317,14 @@ function applyAllHooks() {
 
 function applyHook(functionName) {
 	var superFn = bitsy[functionName];
-	var superFnLength = superFn.length;
+	var superFnLength = superFn ? superFn.length : 0;
 	var functions = [];
 	// start with befores
 	functions = functions.concat(bitsy.kitsy.queuedBeforeScripts[functionName] || []);
 	// then original
-	functions.push(superFn);
+	if (superFn) {
+		functions.push(superFn);
+	}
 	// then afters
 	functions = functions.concat(bitsy.kitsy.queuedAfterScripts[functionName] || []);
 
@@ -7504,6 +7516,330 @@ style.innerText = '#game{ -ms-interpolation-mode: nearest-neighbor;image-renderi
 document.head.appendChild(style);
 
 /**
+@file edit image at runtime
+@summary API for updating image data at runtime.
+@author Sean S. LeBlanc
+@description
+Adds API for updating sprite, tile, and item data at runtime.
+
+Individual frames of image data in bitsy are 8x8 1-bit 2D arrays in yx order
+e.g. the default player is:
+[
+	[0,0,0,1,1,0,0,0],
+	[0,0,0,1,1,0,0,0],
+	[0,0,0,1,1,0,0,0],
+	[0,0,1,1,1,1,0,0],
+	[0,1,1,1,1,1,1,0],
+	[1,0,1,1,1,1,0,1],
+	[0,0,1,0,0,1,0,0],
+	[0,0,1,0,0,1,0,0]
+]
+*/
+
+/*
+Args:
+	   id: string id or name
+	frame: animation frame (0 or 1)
+	  map: map of images (e.g. `sprite`, `tile`, `item`)
+
+Returns: a single frame of a image data
+*/
+function getImageData(id, frame, map) {
+	return bitsy.imageStore.source[getImage(id, map).drw][frame];
+}
+
+function getSpriteData(id, frame) {
+	return getImageData(id, frame, bitsy.sprite);
+}
+
+/*
+Updates a single frame of image data
+
+Args:
+	     id: string id or name
+	  frame: animation frame (0 or 1)
+	    map: map of images (e.g. `sprite`, `tile`, `item`)
+	newData: new data to write to the image data
+*/
+function setImageData(id, frame, map, newData) {
+	var drawing = getImage(id, map);
+	var drw = drawing.drw;
+	bitsy.imageStore.source[drw][frame] = newData;
+	if (drawing.animation.isAnimated) {
+		drw += "_" + frame;
+	}
+	for (var pal in bitsy.palette) {
+		if (bitsy.palette.hasOwnProperty(pal)) {
+			var col = drawing.col;
+			var colStr = "" + col;
+			bitsy.imageStore.render[pal][colStr][drw] = bitsy.imageDataFromImageSource(newData, pal, col);
+		}
+	}
+}
+
+function setSpriteData(id, frame, newData) {
+	setImageData(id, frame, bitsy.sprite, newData);
+}
+
+/**
+↔
+@file directional avatar
+@summary flips the player's sprite based on directional movement
+@license MIT
+@version 1.0.1
+@author Sean S. LeBlanc
+
+@description
+Flips the player's sprite based on directional movement.
+
+HOW TO USE:
+1. Copy-paste into a script tag after the bitsy source
+2. Edit `horizontalFlipAllowed` and `verticalFlipAllowed` below as needed
+*/
+
+var hackOptions$1 = {
+	// If `horizontalFlipAllowed` is true:
+	// 	pressing left will make the player's sprite face backwards
+	// 	pressing right will make the player's sprite face forwards
+	horizontalFlipAllowed: true,
+	// If `verticalFlipAllowed` is true:
+	// 	pressing down will make the player's sprite upside-down
+	// 	pressing up will make the player's sprite right-side up
+	verticalFlipAllowed: false
+};
+
+// helper function to flip sprite data
+function flip(spriteData, v, h) {
+	var x, y, x2, y2, col, tmp;
+	var s = spriteData.slice();
+	if (v && hackOptions$1.verticalFlipAllowed) {
+		for (y = 0; y < s.length / 2; ++y) {
+			y2 = s.length - y - 1;
+			tmp = s[y];
+			s[y] = s[y2];
+			s[y2] = tmp;
+		}
+	}
+	if (h && hackOptions$1.horizontalFlipAllowed) {
+		for (y = 0; y < s.length; ++y) {
+			col = s[y] = s[y].slice();
+			for (x = 0; x < col.length / 2; ++x) {
+				x2 = col.length - x - 1;
+				tmp = col[x];
+				col[x] = col[x2];
+				col[x2] = tmp;
+			}
+		}
+	}
+	return s;
+}
+
+var hflip = false;
+var vflip = false;
+var originalAnimation;
+
+after('onPlayerMoved', function () {
+	var i;
+	// save the original frames
+	if (!originalAnimation || originalAnimation.referenceFrame !== getSpriteData('l', 0)) {
+		originalAnimation = {
+			frames: []
+		};
+		for (i = 0; i < bitsy.sprite['l'].animation.frameCount; ++i) {
+			originalAnimation.frames.push(getSpriteData('l', i));
+		}
+	}
+
+	// determine which directions need flipping
+	switch (bitsy.curPlayerDirection) {
+	case bitsy.Direction.Up:
+		vflip = false;
+		break;
+	case bitsy.Direction.Down:
+		vflip = true;
+		break;
+	case bitsy.Direction.Left:
+		hflip = true;
+		break;
+	case bitsy.Direction.Right:
+		hflip = false;
+		break;
+	default:
+		break;
+	}
+
+	// update sprite with flipped frames
+	for (i = 0; i < originalAnimation.frames.length; ++i) {
+		setSpriteData('l', i, flip(originalAnimation.frames[i], vflip, hflip));
+	}
+	originalAnimation.referenceFrame = getSpriteData('l', 0);
+});
+
+/**
+👨‍👨‍👧‍👧
+@file multi-sprite avatar
+@summary make the player big
+@license MIT
+@version 1.0.0
+@author Sean S. LeBlanc
+
+@description
+Allows multiple sprites to be moved together along with the player
+to create the illusion of a larger avatar.
+
+Provided example is a 2x2 square for simplicity,
+but multi-sprite avatar's shape can be arbitrary.
+
+Notes:
+- will probably break any other hacks involving moving other sprites around (they'll probably use the player's modified collision)
+- the original avatar sprite isn't changed, but will be covered by a piece at x:0,y:0
+
+HOW TO USE:
+1. Copy-paste into a script tag after the bitsy source
+2. Edit `pieces` below to customize the multi-sprite avatar
+	Pieces must have an x,y offset and a sprite id
+*/
+
+var hackOptions$2 = {
+	pieces: [{
+		x: 0,
+		y: 0,
+		spr: 'player-top'
+	}],
+	enabledOnStart: true
+};
+
+if (hackOptions$2.enabledOnStart) {
+	after("onready", enableBig);
+}
+
+var enabled = false;
+var pieces = [];
+
+function syncPieces() {
+	var p = bitsy.player();
+	for (var i = 0; i < pieces.length; ++i) {
+		var piece = pieces[i];
+		var spr = getImage(piece.spr, bitsy.sprite);
+
+		spr.room = p.room;
+		spr.x = p.x + piece.x;
+		spr.y = p.y + piece.y;
+	}
+}
+
+function enableBig(newPieces) {
+	disableBig();
+	pieces = newPieces || hackOptions$2.pieces;
+	enabled = true;
+	syncPieces();
+}
+
+function disableBig() {
+	enabled = false;
+	for (var i = 0; i < pieces.length; ++i) {
+		getImage(pieces[i].spr, bitsy.sprite).room = null;
+	}
+}
+
+// handle item/ending/exit collision
+var _getItemIndex = bitsy.getItemIndex;
+var _getEnding = bitsy.getEnding;
+var _getExit = bitsy.getExit;
+var getItemIndexOverride = function (roomId, x, y) {
+	for (var i = 0; i < pieces.length; ++i) {
+		var piece = pieces[i];
+		var idx = _getItemIndex(roomId, x + piece.x, y + piece.y);
+		if (idx !== -1) {
+			return idx;
+		}
+	}
+	return -1;
+};
+var getEndingOverride = function (roomId, x, y) {
+	for (var i = 0; i < pieces.length; ++i) {
+		var piece = pieces[i];
+		var e = _getEnding(roomId, x + piece.x, y + piece.y);
+		if (e) {
+			return e;
+		}
+	}
+};
+var getExitOverride = function (roomId, x, y) {
+	for (var i = 0; i < pieces.length; ++i) {
+		var piece = pieces[i];
+		var e = _getExit(roomId, x + piece.x, y + piece.y);
+		if (e) {
+			return e;
+		}
+	}
+};
+before("movePlayer", function () {
+	if (enabled) {
+		bitsy.getItemIndex = getItemIndexOverride;
+		bitsy.getEnding = getEndingOverride;
+		bitsy.getExit = getExitOverride;
+	}
+});
+after("movePlayer", function () {
+	bitsy.getItemIndex = _getItemIndex;
+	bitsy.getEnding = _getEnding;
+	bitsy.getExit = _getExit;
+	if (enabled) {
+		syncPieces();
+	}
+});
+
+
+// handle wall/sprite collision
+function repeat(fn) {
+	var p = bitsy.player();
+	var x = p.x;
+	var y = p.y;
+	var r;
+	for (var i = 0; i < pieces.length; ++i) {
+		var piece = pieces[i];
+		p.x = x + piece.x;
+		p.y = y + piece.y;
+		r = r || fn();
+	}
+	p.x = x;
+	p.y = y;
+	return r;
+}
+var repeats = [
+	'getSpriteLeft',
+	'getSpriteRight',
+	'getSpriteUp',
+	'getSpriteDown',
+	'isWallLeft',
+	'isWallRight',
+	'isWallUp',
+	'isWallDown'
+];
+for (var i = 0; i < repeats.length; ++i) {
+	var r = repeats[i];
+	var _fn = bitsy[r];
+	bitsy[r] = function (fn) {
+		return enabled ? repeat(fn) : fn();
+	}.bind(undefined, _fn);
+}
+
+// prevent player from colliding with their own pieces
+function filterPieces(id) {
+	for (var i = 0; i < pieces.length; ++i) {
+		if (id === pieces[i].spr) {
+			return null;
+		}
+	}
+	return id;
+}
+var _getSpriteAt = bitsy.getSpriteAt;
+bitsy.getSpriteAt = function () {
+	return filterPieces(_getSpriteAt.apply(this, arguments));
+};
+
+/**
 🏁
 @file transparent sprites
 @summary makes all sprites have transparent backgrounds
@@ -7663,8 +7999,8 @@ var gamepads = {
 	available: false,
 	pollEveryFrame: false,
 	connected: false,
-	deadZone: 0.2, // if abs(an axis value) is < deadZone, returns 0 instead
-	snapZone: 0.0, // if abs(1-an axis value) is < snapZone, returns 1 instead
+	deadZone: 0.25, // if abs(an axis value) is < deadZone, returns 0 instead
+	snapZone: 0.25, // if abs(1-an axis value) is < snapZone, returns 1 instead
 
 	init: function () {
 		if (navigator.getGamepads) {
@@ -8065,7 +8401,7 @@ var classCallCheck=function(t,e){if(!(t instanceof e))throw new TypeError("Canno
 
 
 
-var hackOptions$1 = {
+var hackOptions$3 = {
 	background: "black",
 	scaleMode: "MULTIPLES", // use "FIT" if you prefer size to pixel accuracy
 	allowDownscaling: false,
@@ -8079,14 +8415,10 @@ var hackOptions$1 = {
 		x = bitsy.player().x;
 		y = bitsy.player().y;
 		room = bitsy.player().room;
-
-		function light(event){
+		document.getElementById('game').addEventListener('mousemove', function(event){
 			mx = event.clientX - event.currentTarget.offsetLeft;
 			my = event.clientY - event.currentTarget.offsetTop;
-			snap = false;
-		}
-		document.getElementById('game').addEventListener('mousemove', light);
-		document.getElementById('game').addEventListener('touchmove', light);
+		});
 	},
 	update: function() {
 		// you can update any custom uniforms you have here if needed
@@ -8099,15 +8431,6 @@ var hackOptions$1 = {
 			x += (bitsy.player().x - x) * .1;
 			y += (bitsy.player().y - y) * .1;
 		}
-		var gx = inputGamepads.getAxis(inputGamepads.RSTICK_H);
-		var gy = inputGamepads.getAxis(inputGamepads.RSTICK_V);
-		if (Math.abs(gx) + Math.abs(gy) > 0) {
-			snap = true;
-			snapAngle = Math.atan2(gy,gx);
-		}if(snap) {
-			mx = x*8 + 4 + Math.cos(snapAngle);
-			my = y*8 + 4 + Math.sin(snapAngle);
-		}
 		on += ((onF ? 1.0 : 0.0) - on) * .1;
 		glazy.gl.uniform2f(glazy.glLocations.player, (x+0.5)/8, 1 - ((y+0.5)/8));
 		glazy.gl.uniform2f(glazy.glLocations.mouse, mx/64, 1.0-my/64);
@@ -8117,15 +8440,16 @@ var hackOptions$1 = {
 
 var glazy;
 after('startExportedGame', function () {
-	glazy = new WebGLazy(hackOptions$1);
-	hackOptions$1.init();
+	glazy = new WebGLazy(hackOptions$3);
+	hackOptions$3.init();
 });
 
 after('update', function () {
-	hackOptions$1.update();
+	hackOptions$3.update();
 });
 
 }(window));
+
 </script>
 
 <script id='shader-frag' src='shader.frag.glsl' type='x-shader/x-fragment'>//SHADER</script>
