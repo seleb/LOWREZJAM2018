@@ -5,14 +5,15 @@ Write your game's title here
 ! ROOM_FORMAT 1
 
 PAL 0
-255,255,128 ! 0 = bg, pass-through
-0,10,180 ! 1 = tile, solid wall
-10,250,150 ! 2 = sprite, shiny
-20,200,90 ! 3 = glass
-128,250,90 ! 4 = short obstacle
-255,255,120 ! 7 = floor pattern
-255,255,90 ! 6 = player
+255,255,128
+0,10,180
+10,250,150
+20,200,90
+128,250,90
+255,255,120
+255,255,90
 255,255,255
+0,240,120
 
 ROOM 0
 o,k,k,k,k,k,k,p,a,0,0,0,0,0,0,0

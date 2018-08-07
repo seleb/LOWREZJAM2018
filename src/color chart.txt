@@ -1,0 +1,10 @@
+
+255,255,128 ! 0 = bg, pass-through
+0,10,180 ! 1 = tile, solid black wall
+10,250,150 ! 2 = sprite, shiny
+20,200,90 ! 3 = glass
+128,250,90 ! 4 = short obstacle
+255,255,120 ! 5 = floor pattern
+255,255,90 ! 6 = player-top
+255,255,255 ! 7 = player-base
+0,240,120 ! 8 = solid grey wall
