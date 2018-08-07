@@ -8079,11 +8079,14 @@ var hackOptions$1 = {
 		x = bitsy.player().x;
 		y = bitsy.player().y;
 		room = bitsy.player().room;
-		document.getElementById('game').addEventListener('mousemove', function(event){
+
+		function light(event){
 			mx = event.clientX - event.currentTarget.offsetLeft;
 			my = event.clientY - event.currentTarget.offsetTop;
 			snap = false;
-		});
+		}
+		document.getElementById('game').addEventListener('mousemove', light);
+		document.getElementById('game').addEventListener('touchmove', light);
 	},
 	update: function() {
 		// you can update any custom uniforms you have here if needed
