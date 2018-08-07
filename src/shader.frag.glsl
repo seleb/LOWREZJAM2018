@@ -13,13 +13,13 @@ uniform vec2 player;
 uniform vec2 mouse;
 
 uniform float on;
+uniform float coneTightness;
 
 const vec2 size = vec2(64.0);
 const float diag = sqrt(size.x*size.y*2.0);
 const float inc = 0.1;
 
 const float blend = 0.69;
-const float coneTightness = 0.69;
 const float coneSafety = 0.42;
 
 // https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
@@ -134,8 +134,9 @@ void main(){
 
 	vec2 a = coord - source;
 	vec2 a2 = mouse*size - source;
-	float cone = (dot(a, a2) / (length(a)*length(a2)));
+	float cone = dot(normalize(a), normalize(a2));
 	cone += sin(time/100.0)*0.003 + sin(time/20.0)*0.002;
+	cone = clamp(0.0, 1.0, cone);
 	cone = smoothstep(coneTightness, 1.0, cone);
 
 	vec4 tex = texture2D(tex0,uv);

@@ -7129,6 +7129,7 @@ e.g.
 	}
 (closing script tag omitted in comment to avoid confusing browser)
 */
+var coneTightness = 0.0;
 (function (bitsy) {
 'use strict';
 var x,y,room;
@@ -8412,6 +8413,7 @@ var hackOptions$3 = {
 		glazy.glLocations.player = glazy.gl.getUniformLocation(glazy.shader.program, 'player');
 		glazy.glLocations.mouse = glazy.gl.getUniformLocation(glazy.shader.program, 'mouse');
 		glazy.glLocations.on = glazy.gl.getUniformLocation(glazy.shader.program, 'on');
+		glazy.glLocations.coneTightness = glazy.gl.getUniformLocation(glazy.shader.program, 'coneTightness');
 		x = bitsy.player().x;
 		y = bitsy.player().y;
 		room = bitsy.player().room;
@@ -8435,6 +8437,7 @@ var hackOptions$3 = {
 		glazy.gl.uniform2f(glazy.glLocations.player, (x+0.5)/8, 1 - ((y+0.5)/8));
 		glazy.gl.uniform2f(glazy.glLocations.mouse, mx/64, 1.0-my/64);
 		glazy.gl.uniform1f(glazy.glLocations.on, on);
+		glazy.gl.uniform1f(glazy.glLocations.coneTightness, coneTightness);
 	},
 };
 
