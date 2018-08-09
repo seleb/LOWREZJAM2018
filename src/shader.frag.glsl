@@ -136,7 +136,7 @@ void main(){
 	vec2 a2 = mouse*size - source;
 	float cone = dot(normalize(a), normalize(a2));
 	cone += sin(time/100.0)*0.003 + sin(time/20.0)*0.002;
-	cone = clamp(0.0, 1.0, cone);
+	cone = clamp(cone, 0.0, 1.0);
 	cone = smoothstep(coneTightness, 1.0, cone);
 
 	vec4 tex = texture2D(tex0,uv);
